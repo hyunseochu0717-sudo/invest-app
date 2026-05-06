@@ -307,8 +307,15 @@ body.dark .tag-logic{background:#0c2340;color:#85b7eb;}
         <div id="weekly-summary" style="font-size:13px;color:var(--text3);">이번 주 작성된 일일 기록이 여기에 모여요.</div>
       </div>
       <div class="card">
-        <div class="card-hd">이번 주 판단 복기</div>
+        <div class="card-hd">
+          <span>이번 주 판단 복기</span>
+          <button class="btn btn-sm" onclick="saveWeeklyReview()"><i class="ti ti-device-floppy"></i> 저장</button>
+        </div>
         <textarea class="naked-ta" id="weekly-review-input" placeholder="이번 주 잘한 판단, 틀린 판단, FOMO가 있었는지 돌아보세요..."></textarea>
+      </div>
+      <div class="card" id="weekly-history-card" style="display:none;">
+        <div class="card-hd">주간 기록 히스토리</div>
+        <div id="weekly-history-list"></div>
       </div>
       <div class="chat-box">
         <div class="chat-top"><button class="btn btn-sm" onclick="clearChat('weekly')"><i class="ti ti-refresh"></i> 대화 초기화</button></div>
@@ -339,7 +346,7 @@ body.dark .tag-logic{background:#0c2340;color:#85b7eb;}
         <div class="card"><div class="card-hd">수익률 히스토리</div><div id="hist-chart"><div style="color:var(--text3);font-size:13px;">기록이 쌓이면 표시돼요.</div></div></div>
       </div>
       <div class="tbl-wrap">
-        <div class="tbl-hd"><span>보유 종목</span><button class="btn btn-sm" onclick="openHoldingModal()"><i class="ti ti-plus"></i> 종목 추가</button></div>
+        <div class="tbl-hd"><span>보유 종목</span><button class="btn btn-sm" onclick="openStockPicker()"><i class="ti ti-plus"></i> 종목 추가</button></div>
         <table><thead><tr>
           <th style="width:70px;">종목</th><th style="width:55px;">시장</th>
           <th>매수가</th><th>현재가</th><th>목표가</th>
@@ -635,7 +642,7 @@ async function serverLoad() {
     const r = await fetch("/api/load");
     const d = await r.json();
     if (!d || d.error) return;
-    ["accounts","curAcc","theses","industries","principles","mistakes","watchlist","dailyMemos","weeklyReview","chats","theme","returnHistory","dividends","events","glossary","targetRet"].forEach(k => { if (d[k] !== undefined) S[k] = d[k]; });
+    ["accounts","curAcc","theses","industries","principles","mistakes","watchlist","dailyMemos","weeklyReview","chats","theme","returnHistory","dividends","events","glossary","targetRet","weeklyReviews"].forEach(k => { if (d[k] !== undefined) S[k] = d[k]; });
     save();
   } catch {}
 }
@@ -1311,13 +1318,61 @@ function getWeekRange() {
   const f = dt => `${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,"0")}.${String(dt.getDate()).padStart(2,"0")}`;
   return {start:f(mon),end:f(sun)};
 }
+function getWeekKey() {
+  const d = new Date();
+  const {start} = getWeekRange();
+  const month = d.getMonth()+1;
+  const weekNum = Math.ceil(d.getDate()/7);
+  return `${d.getFullYear()}.${String(month).padStart(2,"0")}.${weekNum}주차`;
+}
+
+function saveWeeklyReview() {
+  const el = document.getElementById("weekly-review-input");
+  if (!el) return;
+  const text = el.value.trim();
+  if (!text) { alert("내용을 입력해줘!"); return; }
+  const key = getWeekKey();
+  if (!S.weeklyReviews) S.weeklyReviews = {};
+  S.weeklyReviews[key] = { text, date: key };
+  serverSave("weeklyReviews", S.weeklyReviews);
+  el.value = ""; // 저장 후 초기화
+  renderWeeklyHistory();
+  alert("저장됐어!");
+}
+
+function renderWeeklyHistory() {
+  const el = document.getElementById("weekly-history-list");
+  const card = document.getElementById("weekly-history-card");
+  if (!el || !card) return;
+  const reviews = Object.entries(S.weeklyReviews||{}).sort((a,b)=>b[0].localeCompare(a[0]));
+  if (reviews.length===0) { card.style.display="none"; return; }
+  card.style.display="block";
+  el.innerHTML = reviews.map(([key,r])=>`<div class="li" style="margin-bottom:6px;">
+    <div class="li-row">
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--text1);">${key}</div>
+        <div style="font-size:13px;color:var(--text2);margin-top:4px;line-height:1.5;">${r.text}</div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="deleteWeeklyReview('${key}')"><i class="ti ti-trash"></i></button>
+    </div>
+  </div>`).join("");
+}
+
+function deleteWeeklyReview(key) {
+  if (!confirm("삭제할까요?")) return;
+  delete S.weeklyReviews[key];
+  serverSave("weeklyReviews", S.weeklyReviews);
+  renderWeeklyHistory();
+}
+
 function loadMemoUI() {
   const input = document.getElementById("daily-memo-input");
-  if (input) input.innerHTML = S.dailyMemos[TODAY_STR]?.html || "";
+  if (input) input.innerHTML = ""; // 항상 비워서 시작
   const wr = document.getElementById("weekly-review-input");
-  if (wr) { wr.value = S.weeklyReview||""; wr.oninput = ()=>{ S.weeklyReview=wr.value; serverSave("weeklyReview",S.weeklyReview); }; }
+  if (wr) wr.value = "";
   renderMemoHistory();
   renderWeeklySummary();
+  renderWeeklyHistory();
 }
 function saveDailyMemo() {
   const text = document.getElementById("daily-memo-input").value.trim();
@@ -1823,6 +1878,160 @@ async function loadIndNews() {
 }
 
 
+
+// ── STOCK PICKER ──────────────────────────────────────────────
+const ALL_STOCKS = {
+  indices: [
+    {n:"S&P 500",sym:"^GSPC",market:"미국"},{n:"나스닥",sym:"^IXIC",market:"미국"},
+    {n:"코스피",sym:"^KS11",market:"한국"},{n:"코스닥",sym:"^KQ11",market:"한국"},
+  ],
+  us: {
+    "기술": [{n:"Apple",sym:"AAPL"},{n:"Microsoft",sym:"MSFT"},{n:"Alphabet",sym:"GOOGL"},{n:"Meta",sym:"META"},{n:"Amazon",sym:"AMZN"},{n:"Netflix",sym:"NFLX"},{n:"Oracle",sym:"ORCL"}],
+    "반도체": [{n:"NVIDIA",sym:"NVDA"},{n:"AMD",sym:"AMD"},{n:"Intel",sym:"INTC"},{n:"Qualcomm",sym:"QCOM"},{n:"Broadcom",sym:"AVGO"},{n:"Micron",sym:"MU"},{n:"ASML",sym:"ASML"},{n:"TSMC",sym:"TSM"}],
+    "AI": [{n:"NVIDIA",sym:"NVDA"},{n:"Microsoft",sym:"MSFT"},{n:"Alphabet",sym:"GOOGL"},{n:"Palantir",sym:"PLTR"},{n:"C3.ai",sym:"AI"},{n:"IBM",sym:"IBM"}],
+    "전기차": [{n:"Tesla",sym:"TSLA"},{n:"Rivian",sym:"RIVN"},{n:"Lucid",sym:"LCID"},{n:"Ford",sym:"F"},{n:"GM",sym:"GM"}],
+    "금융": [{n:"JPMorgan",sym:"JPM"},{n:"Goldman Sachs",sym:"GS"},{n:"Bank of America",sym:"BAC"},{n:"Visa",sym:"V"},{n:"Mastercard",sym:"MA"}],
+    "바이오": [{n:"Eli Lilly",sym:"LLY"},{n:"AbbVie",sym:"ABBV"},{n:"Moderna",sym:"MRNA"},{n:"Pfizer",sym:"PFE"},{n:"Johnson&Johnson",sym:"JNJ"}],
+    "ETF": [{n:"S&P 500 ETF",sym:"SPY"},{n:"나스닥 ETF",sym:"QQQ"},{n:"반도체 ETF",sym:"SOXX"},{n:"ARK Innovation",sym:"ARKK"},{n:"VTI",sym:"VTI"}],
+  },
+  kr: {
+    "반도체": [{n:"삼성전자",sym:"005930.KS"},{n:"SK하이닉스",sym:"000660.KS"},{n:"한미반도체",sym:"042700.KS"},{n:"DB하이텍",sym:"000990.KS"}],
+    "2차전지": [{n:"LG에너지솔루션",sym:"373220.KS"},{n:"삼성SDI",sym:"006400.KS"},{n:"에코프로비엠",sym:"247540.KS"},{n:"포스코퓨처엠",sym:"003670.KS"}],
+    "바이오": [{n:"삼성바이오로직스",sym:"207940.KS"},{n:"셀트리온",sym:"068270.KS"},{n:"한미약품",sym:"128940.KS"},{n:"유한양행",sym:"000100.KS"}],
+    "IT": [{n:"네이버",sym:"035420.KS"},{n:"카카오",sym:"035720.KS"},{n:"크래프톤",sym:"259960.KS"},{n:"카카오뱅크",sym:"323410.KS"}],
+    "대형주": [{n:"현대차",sym:"005380.KS"},{n:"기아",sym:"000270.KS"},{n:"POSCO홀딩스",sym:"005490.KS"},{n:"LG전자",sym:"066570.KS"},{n:"현대모비스",sym:"012330.KS"}],
+    "금융": [{n:"KB금융",sym:"105560.KS"},{n:"신한지주",sym:"055550.KS"},{n:"하나금융지주",sym:"086790.KS"},{n:"삼성생명",sym:"032830.KS"}],
+  }
+};
+
+let pickerTab = "us", pickerSub = "", pickerSelected = null;
+
+function openStockPicker() {
+  pickerTab = "us"; pickerSub = "기술"; pickerSelected = null;
+  document.getElementById("stock-search").value = "";
+  document.getElementById("picker-buy-form").style.display = "none";
+  document.getElementById("picker-date").value = TODAY_STR;
+  renderPickerTabs();
+  renderPickerList();
+  openModal("modal-stock-picker");
+}
+
+function renderPickerTabs() {
+  const tabs = [{id:"us",l:"미국"},{id:"kr",l:"한국"}];
+  document.getElementById("picker-tabs").innerHTML = tabs.map(t =>
+    `<div class="mtab${pickerTab===t.id?" active":""}" onclick="pickerTab='${t.id}';pickerSub='';renderPickerTabs();renderPickerList()">${t.l}</div>`
+  ).join("");
+  const data = ALL_STOCKS[pickerTab];
+  const sects = Object.keys(data);
+  if (!pickerSub || !data[pickerSub]) pickerSub = sects[0];
+  document.getElementById("picker-subtabs").innerHTML = sects.map(s =>
+    `<div class="stab${pickerSub===s?" active":""}" onclick="pickerSub='${s}';renderPickerList()">${s}</div>`
+  ).join("");
+}
+
+function renderPickerList(searchQ = "") {
+  const q = searchQ || document.getElementById("stock-search").value.trim().toLowerCase();
+  const el = document.getElementById("picker-list"); if (!el) return;
+  let stocks = [];
+  if (q) {
+    // Search across all
+    Object.values(ALL_STOCKS.us).forEach(arr => stocks.push(...arr.map(s=>({...s,market:"미국"}))));
+    Object.values(ALL_STOCKS.kr).forEach(arr => stocks.push(...arr.map(s=>({...s,market:"한국"}))));
+    stocks = stocks.filter(s => s.n.toLowerCase().includes(q) || s.sym.toLowerCase().includes(q));
+  } else {
+    const data = ALL_STOCKS[pickerTab];
+    stocks = (data[pickerSub]||[]).map(s=>({...s,market:pickerTab==="us"?"미국":"한국"}));
+  }
+  if (stocks.length===0) { el.innerHTML=`<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">검색 결과가 없어요.</div>`; return; }
+  el.innerHTML = stocks.map(s => `<div class="mfrow" onclick="selectStock('${s.sym}','${s.n}','${s.market}')">
+    <span><span style="font-weight:500;">${s.n}</span> <span style="color:var(--text3);font-size:12px;">${s.sym}</span></span>
+    <span class="badge-${s.market==="미국"?"us":"kr"}">${s.market}</span>
+  </div>`).join("");
+}
+
+function filterStocks() { renderPickerList(); }
+
+async function selectStock(sym, name, market) {
+  pickerSelected = {sym, name, market};
+  document.getElementById("picker-selected-name").textContent = `${name} (${sym})`;
+  document.getElementById("picker-buy-form").style.display = "block";
+  document.getElementById("picker-curr").value = "불러오는 중...";
+  document.getElementById("picker-buy").value = "";
+  document.getElementById("picker-qty").value = "";
+  document.getElementById("picker-sector").value = "";
+  // Auto fill sector from current sub tab
+  if (pickerSub) document.getElementById("picker-sector").value = pickerSub;
+  // Fetch current price
+  try {
+    const r = await fetch(`/api/price?sym=${encodeURIComponent(sym)}`);
+    const d = await r.json();
+    if (d.price && !d.error) {
+      document.getElementById("picker-curr").value = d.price;
+      document.getElementById("picker-buy").value = d.price; // default buy = current
+    } else {
+      document.getElementById("picker-curr").value = "";
+    }
+  } catch {
+    document.getElementById("picker-curr").value = "";
+  }
+}
+
+function saveFromPicker() {
+  if (!pickerSelected) return;
+  const currPrice = parseFloat(document.getElementById("picker-curr").value)||0;
+  const buyPrice = parseFloat(document.getElementById("picker-buy").value)||currPrice;
+  const qty = parseInt(document.getElementById("picker-qty").value)||0;
+  if (!qty) { alert("수량을 입력해줘!"); return; }
+  const h = {
+    ticker: pickerSelected.sym.replace(".KS","").replace(".KQ",""),
+    market: pickerSelected.market,
+    buyPrice, currPrice,
+    qty,
+    date: document.getElementById("picker-date").value||TODAY_STR,
+    target: parseFloat(document.getElementById("picker-target").value)||0,
+    sector: document.getElementById("picker-sector").value.trim(),
+    name: pickerSelected.name,
+  };
+  const acc = ACC();
+  if (!acc.holdings) acc.holdings=[];
+  acc.holdings.push(h);
+  serverSave("accounts", S.accounts);
+  closeModal("modal-stock-picker");
+  renderAll();
+}
+
+// ── FIX INDUSTRY NEWS ─────────────────────────────────────────
+async function loadIndNews() {
+  const el=document.getElementById("ind-news"); if(!el) return;
+  if (currentIndIdx===-1) return;
+  const indName=S.industries[currentIndIdx].name;
+  el.innerHTML=`<div style="color:var(--text3);font-size:13px;">뉴스 불러오는 중...</div>`;
+  try {
+    // Try Korean industry name + English
+    const queries = [indName, indName+" 산업", indName+" industry market"];
+    let articles = [];
+    for (const q of queries) {
+      const r=await fetch(`/api/news?q=${encodeURIComponent(q)}&size=5`);
+      const d=await r.json();
+      if (d.articles && d.articles.length>0) { articles=d.articles; break; }
+    }
+    if (articles.length===0) {
+      // Fallback: ask Claude
+      const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({section:"industry",messages:[{role:"user",content:`${indName} 산업의 최근 주요 동향과 뉴스를 5개 알려줘. 각각 제목과 한줄 요약 형식으로.`}]})});
+      const d=await r.json();
+      el.innerHTML=`<div style="font-size:13px;line-height:1.7;color:var(--text1);">${d.text}</div>`;
+      return;
+    }
+    el.innerHTML=articles.map(a=>`<div class="news-item">
+      <div class="news-title">${a.url?`<a href="${a.url}" target="_blank" style="color:var(--text1);text-decoration:none;">${a.title}</a>`:a.title}</div>
+      <div class="news-meta">${a.publishedAt||""} · ${a.source||""}</div>
+      ${a.description?`<div style="font-size:12px;color:var(--text2);margin-top:3px;line-height:1.4;">${a.description}</div>`:""}
+    </div>`).join("");
+  } catch(e) {
+    el.innerHTML=`<div style="color:var(--text3);font-size:13px;">뉴스를 불러올 수 없어요.</div>`;
+  }
+}
+
 // ── MODAL HELPERS ──────────────────────────────────────────────
 function openModal(id) { document.getElementById(id).style.display="flex"; }
 function closeModal(id) { document.getElementById(id).style.display="none"; }
@@ -1890,6 +2099,34 @@ function closeModal(id) { document.getElementById(id).style.display="none"; }
     <div class="field"><label>용어</label><input type="text" class="finput" id="gl-term" placeholder="예: PER"></div>
     <div class="field"><label>설명</label><textarea class="ftextarea" id="gl-desc" placeholder="설명을 입력하거나 Claude에게 물어보세요..."></textarea></div>
     <div class="modal-acts"><button class="btn-primary" onclick="saveGlossary()">저장</button><button class="btn" onclick="closeModal('modal-glossary')">취소</button></div>
+  </div>
+</div>
+
+
+<!-- Stock Picker Modal -->
+<div class="overlay" id="modal-stock-picker" style="display:none;" onclick="if(event.target===this)closeModal('modal-stock-picker')">
+  <div class="modal modal-wide">
+    <div class="modal-hd">
+      <span class="modal-title">종목 선택</span>
+      <button class="modal-close" onclick="closeModal('modal-stock-picker')"><i class="ti ti-x"></i></button>
+    </div>
+    <input type="text" class="finput" id="stock-search" placeholder="종목명 또는 티커 검색... (예: 삼성, NVDA)" oninput="filterStocks()" style="margin-bottom:10px;">
+    <div class="mftabs" id="picker-tabs"></div>
+    <div class="subtabs" id="picker-subtabs"></div>
+    <div id="picker-list" style="max-height:300px;overflow-y:auto;"></div>
+    <!-- Buy form -->
+    <div id="picker-buy-form" style="display:none;margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border);">
+      <div style="font-size:13px;font-weight:500;margin-bottom:10px;">선택된 종목: <span id="picker-selected-name"></span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field"><label>현재가 (자동)</label><input type="number" class="finput" id="picker-curr" readonly style="background:var(--bg2);"></div>
+        <div class="field"><label>매수가</label><input type="number" class="finput" id="picker-buy" placeholder="매수 가격"></div>
+        <div class="field"><label>수량 (주)</label><input type="number" class="finput" id="picker-qty" placeholder="예: 3"></div>
+        <div class="field"><label>목표가 (선택)</label><input type="number" class="finput" id="picker-target" placeholder="예: 150"></div>
+        <div class="field"><label>섹터 (선택)</label><input type="text" class="finput" id="picker-sector" placeholder="예: 반도체"></div>
+        <div class="field"><label>매수일</label><input type="text" class="finput" id="picker-date"></div>
+      </div>
+      <button class="btn-primary" style="width:100%;margin-top:8px;" onclick="saveFromPicker()">포트폴리오에 추가</button>
+    </div>
   </div>
 </div>
 
