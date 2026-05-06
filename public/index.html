@@ -628,7 +628,7 @@ async function serverLoad() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────
-window.onload = function() {
+window.onload = async function() {
   load();
   document.getElementById("today-date").textContent = TODAY_STR;
   applyTheme();
@@ -637,6 +637,14 @@ window.onload = function() {
   initChatUIs();
   loadMemos();
   loadApiKeyStatus();
+  // Load from Supabase
+  await serverLoad();
+  renderAll();
+  initChatUIs();
+  loadMemos();
+  renderAccountList();
+  updateSeedDisplay();
+  autoUpdatePrices();
 };
 
 function setupNav() {
@@ -727,6 +735,8 @@ function saveAccount() {
   serverSave("accounts", state.accounts);
   renderAccountList();
   updateSeedDisplay();
+  document.getElementById("acc-name").value = "";
+  document.getElementById("acc-seed").value = "";
   closeModal("modal-account");
 }
 
@@ -909,7 +919,10 @@ function saveHolding() {
   if (!acc.holdings) acc.holdings = [];
   if (idx === -1) acc.holdings.push(h);
   else acc.holdings[idx] = h;
-  serverSave("accounts", state.accounts); renderPortfolio(); closeModal("modal-holding");
+  serverSave("accounts", state.accounts); renderPortfolio(); renderAccountList();
+  ["h-ticker","h-buy","h-curr","h-qty","h-date"].forEach(id => { const el = document.getElementById(id); if(el) el.value = ""; });
+  document.getElementById("h-market").value = "미국";
+  closeModal("modal-holding");
 }
 function deleteHolding(i) {
   if (!confirm("삭제할까요?")) return;
@@ -938,7 +951,11 @@ function confirmSell() {
   if (!acc.sells) acc.sells = [];
   acc.sells.push({ ...h, sellPrice, sellDate, reason, ret });
   acc.holdings.splice(i, 1);
-  serverSave("accounts", state.accounts); renderPortfolio(); renderSells(); closeModal("modal-sell");
+  serverSave("accounts", state.accounts); renderPortfolio(); renderAccountList(); renderSells();
+  document.getElementById("sell-price").value = "";
+  document.getElementById("sell-date").value = "";
+  document.getElementById("sell-reason").value = "";
+  closeModal("modal-sell");
 }
 function renderSells() {
   const el = document.getElementById("sells-list");
@@ -996,7 +1013,9 @@ function saveThesis() {
   const idx = state.editIdx.thesis;
   if (idx === -1) state.theses.push(t);
   else state.theses[idx] = { ...state.theses[idx], ...t };
-  serverSave("theses", state.theses); renderThesis(); closeModal("modal-thesis");
+  serverSave("theses", state.theses); renderThesis();
+  ["t-ticker","t-name","t-industry","t-period","t-why","t-risk","t-wrong"].forEach(id => { const el = document.getElementById(id); if(el) el.value = ""; });
+  closeModal("modal-thesis");
 }
 function openThesisDetail(i) {
   const t = state.theses[i];
@@ -1063,7 +1082,9 @@ function saveIndustry() {
   const idx = state.editIdx.industry;
   if (idx === -1) state.industries.push(ind);
   else state.industries[idx] = ind;
-  serverSave("industries", state.industries); renderIndustry(); closeModal("modal-industry");
+  serverSave("industries", state.industries); renderIndustry();
+  ["ind-name","ind-icon","ind-notes"].forEach(id => { const el = document.getElementById(id); if(el) el.value = ""; });
+  closeModal("modal-industry");
 }
 function openIndustryDetail(i) {
   const ind = state.industries[i];
@@ -1115,7 +1136,10 @@ function savePrinciple() {
   const idx = state.editIdx.principle;
   if (idx === -1) state.principles.push(p);
   else state.principles[idx] = { ...state.principles[idx], ...p };
-  serverSave("principles", state.principles); renderPrinciples(); closeModal("modal-principle");
+  serverSave("principles", state.principles); renderPrinciples();
+  document.getElementById("p-text").value = "";
+  document.getElementById("p-memo").value = "";
+  closeModal("modal-principle");
 }
 function addPrincipleFromMistake(text) {
   state.principles.push({ text, memo: "틀린 판단 복기에서 추가됨", date: TODAY_STR, fromMistake: true });
@@ -1165,7 +1189,11 @@ function saveMistake() {
   const idx = state.editIdx.mistake;
   if (idx === -1) state.mistakes.push(m);
   else state.mistakes[idx] = { ...state.mistakes[idx], ...m };
-  serverSave("mistakes", state.mistakes); renderMistakes(); closeModal("modal-mistake");
+  serverSave("mistakes", state.mistakes); renderMistakes();
+  document.getElementById("m-title").value = "";
+  document.getElementById("m-desc").value = "";
+  document.getElementById("m-tag").value = "FOMO";
+  closeModal("modal-mistake");
   updatePattern();
 }
 function deleteMistake(i) {
