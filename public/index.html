@@ -398,7 +398,7 @@ body.dark .tag-logic{background:#0c2340;color:#85b7eb;}
     <div class="section" id="sec-glossary">
       <div class="card" style="padding:10px 14px;">
         <div style="display:flex;gap:8px;">
-          <input type="text" class="finput" id="glossary-search" placeholder="용어 검색 또는 Claude에게 물어보기..." style="flex:1;" oninput="searchGlossary()">
+          <input type="text" class="finput" id="glossary-search" placeholder="용어 검색 또는 Claude에게 물어보기..." style="flex:1;" oninput="debounceSearch()">
           <button class="btn btn-sm" onclick="openGlossaryModal()"><i class="ti ti-plus"></i> 추가</button>
         </div>
       </div>
@@ -1200,7 +1200,7 @@ function clearIndChat() {
   if (currentIndIdx!==-1) addBubble(el,"ai",`${S.industries[currentIndIdx].name} 산업에 대해 뭐든 물어봐.`);
 }
 
-function sendIndChat() {
+async function sendIndChat() {
   const inp=document.getElementById("ind-det-input");
   const msgs=document.getElementById("ind-det-msgs");
   if (!inp||!msgs) return;
@@ -1209,16 +1209,23 @@ function sendIndChat() {
   addBubble(msgs,"user",text);
   if (!S.chats.industry) S.chats.industry=[];
   S.chats.industry.push({role:"user",text});
-  const loading=document.createElement("div"); loading.className="msg-loading"; loading.textContent="Claude가 생각 중..."; msgs.appendChild(loading); msgs.scrollTop=msgs.scrollHeight;
-  const messages=S.chats.industry.map(m=>({role:m.role==="ai"?"assistant":"user",content:m.text}));
-  fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({section:"industry",messages})})
-    .then(r=>r.json()).then(d=>{
-      loading.remove();
-      const reply=d.text||"응답을 받지 못했어.";
-      addBubble(msgs,"ai",reply);
-      S.chats.industry.push({role:"ai",text:reply});
-      serverSave("chats",S.chats);
-    }).catch(()=>{loading.textContent="오류 발생.";});
+  const aiDiv=document.createElement("div"); aiDiv.className="msg-ai"; aiDiv.innerHTML=`<div class="lbl">Claude</div><div class="txt" id="stream-ind"><span style="color:var(--text3);">...</span></div>`; msgs.appendChild(aiDiv); msgs.scrollTop=msgs.scrollHeight;
+  try {
+    const messages=S.chats.industry.map(m=>({role:m.role==="ai"?"assistant":"user",content:m.text}));
+    const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({section:"industry",messages,stream:true})});
+    const txtEl=document.getElementById("stream-ind"); txtEl.textContent="";
+    const reader=r.body.getReader(); const decoder=new TextDecoder(); let fullText="";
+    while(true){
+      const {done,value}=await reader.read(); if(done)break;
+      const lines=decoder.decode(value).split("\n");
+      for(const line of lines){
+        if(line.startsWith("data: ")){const data=line.slice(6); if(data==="[DONE]")break;
+          try{const p=JSON.parse(data); if(p.text){fullText+=p.text;txtEl.textContent=fullText;msgs.scrollTop=msgs.scrollHeight;}}catch{}
+        }
+      }
+    }
+    S.chats.industry.push({role:"ai",text:fullText}); serverSave("chats",S.chats);
+  } catch(e){const t=document.getElementById("stream-ind");if(t)t.textContent="오류 발생.";}
 }
 function deleteIndustry(i) { if(!confirm("삭제할까요?"))return; S.industries.splice(i,1); serverSave("industries",S.industries); renderIndustry(); }
 
@@ -1570,17 +1577,42 @@ async function sendChat(key) {
   addBubble(el,"user",text);
   if (!S.chats[key]) S.chats[key]=[];
   S.chats[key].push({role:"user",text});
-  const loading=document.createElement("div"); loading.className="msg-loading"; loading.textContent="Claude가 생각 중..."; el.appendChild(loading); el.scrollTop=el.scrollHeight;
+  // Create streaming bubble
+  const aiDiv = document.createElement("div");
+  aiDiv.className = "msg-ai";
+  aiDiv.innerHTML = `<div class="lbl">Claude</div><div class="txt" id="stream-${key}"><span style="color:var(--text3);">...</span></div>`;
+  el.appendChild(aiDiv);
+  el.scrollTop = el.scrollHeight;
   try {
     const messages=S.chats[key].map(m=>({role:m.role==="ai"?"assistant":"user",content:m.text}));
-    const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({section:key,messages})});
-    const d=await r.json();
-    loading.remove();
-    const reply=d.text||d.error||"응답을 받지 못했어.";
-    addBubble(el,"ai",reply);
-    S.chats[key].push({role:"ai",text:reply});
+    const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({section:key,messages,stream:true})});
+    const txtEl = document.getElementById("stream-"+key);
+    txtEl.textContent = "";
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n");
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (data === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.text) { fullText += parsed.text; txtEl.textContent = fullText; el.scrollTop=el.scrollHeight; }
+          } catch {}
+        }
+      }
+    }
+    S.chats[key].push({role:"ai",text:fullText});
     serverSave("chats",S.chats);
-  } catch(e) { loading.textContent="오류가 발생했어. 다시 시도해봐."; }
+  } catch(e) {
+    const txtEl = document.getElementById("stream-"+key);
+    if (txtEl) txtEl.textContent = "오류가 발생했어. 다시 시도해봐.";
+  }
 }
 
 // ── AUTO PRICE UPDATE ──────────────────────────────────────────
@@ -1817,27 +1849,38 @@ function saveClaudeGlossary() {
   alert("사전에 저장됐어!");
 }
 
-async function searchGlossary() {
+let searchTimer = null;
+
+function debounceSearch() {
   const q = document.getElementById("glossary-search").value.trim();
   renderGlossary(q);
-  if (!q) { document.getElementById("glossary-claude-result").style.display="none"; return; }
-  
+  document.getElementById("glossary-claude-result").style.display = "none";
+  clearTimeout(searchTimer);
+  if (!q) return;
   const found = (S.glossary||[]).filter(g=>g.term.toLowerCase().includes(q.toLowerCase())||g.desc.toLowerCase().includes(q.toLowerCase()));
-  if (found.length>0) { document.getElementById("glossary-claude-result").style.display="none"; return; }
-  
-  // Ask Claude if not found
+  if (found.length > 0) return;
+  // Wait 0.8s after user stops typing before asking Claude
+  searchTimer = setTimeout(() => askClaudeGlossary(q), 800);
+}
+
+async function askClaudeGlossary(q) {
   claudeGlossaryTerm = q;
   const resultEl = document.getElementById("glossary-claude-result");
   const textEl = document.getElementById("glossary-claude-text");
-  resultEl.style.display="block";
-  textEl.textContent="Claude가 설명하는 중...";
-  
+  resultEl.style.display = "block";
+  textEl.innerHTML = `<span style="color:var(--text3);">Claude가 설명하는 중...</span>`;
   try {
-    const r = await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({section:"daily",messages:[{role:"user",content:`투자 용어 "${q}"를 초보 투자자가 이해할 수 있게 설명해줘. 정의, 예시, 투자에서 어떻게 활용하는지 포함해서 3-4문장으로.`}]})});
+    const r = await fetch("/api/chat", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({section:"daily", messages:[{role:"user", content:`투자 용어 "${q}"를 초보 투자자가 이해할 수 있게 설명해줘. 정의, 예시, 투자에서 어떻게 활용하는지 포함해서 3-4문장으로.`}]})
+    });
     const d = await r.json();
     textEl.textContent = d.text || "설명을 불러올 수 없어요.";
-  } catch { textEl.textContent="설명을 불러올 수 없어요."; }
+  } catch { textEl.textContent = "설명을 불러올 수 없어요."; }
 }
+
+function searchGlossary() { debounceSearch(); }
 
 function renderGlossary(filter="") {
   const el = document.getElementById("glossary-list"); if(!el) return;

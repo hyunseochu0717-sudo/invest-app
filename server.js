@@ -92,10 +92,10 @@ function extractQuery(messages, section) {
   return `${keywords} stock`;
 }
 
-// Claude 대화 with news context
+// Claude 대화 with news context + streaming
 app.post("/api/chat", async (req, res) => {
   try {
-    const { messages, section } = req.body;
+    const { messages, section, stream } = req.body;
     const system = SYSTEMS[section] || SYSTEMS.daily;
 
     // Fetch relevant news
@@ -109,7 +109,6 @@ app.post("/api/chat", async (req, res) => {
       ).join("\n");
     }
 
-    // Add news to last message
     const enrichedMessages = messages.map((m, i) => {
       if (i === messages.length - 1 && m.role === "user") {
         return { ...m, content: m.content + newsContext };
@@ -117,17 +116,38 @@ app.post("/api/chat", async (req, res) => {
       return m;
     });
 
-    const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 2000,
-      system,
-      messages: enrichedMessages,
-    });
+    if (stream) {
+      // Streaming response
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
 
-    res.json({ text: response.content[0]?.text || "응답을 받지 못했어." });
+      const streamRes = await anthropic.messages.stream({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 2000,
+        system,
+        messages: enrichedMessages,
+      });
+
+      for await (const event of streamRes) {
+        if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
+          res.write(`data: ${JSON.stringify({text: event.delta.text})}\n\n`);
+        }
+      }
+      res.write("data: [DONE]\n\n");
+      res.end();
+    } else {
+      const response = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 2000,
+        system,
+        messages: enrichedMessages,
+      });
+      res.json({ text: response.content[0]?.text || "응답을 받지 못했어." });
+    }
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: e.message });
+    if (!res.headersSent) res.status(500).json({ error: e.message });
   }
 });
 
