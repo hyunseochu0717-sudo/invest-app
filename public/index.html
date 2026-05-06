@@ -197,7 +197,7 @@ textarea,input[type=text],input[type=number],select{font-family:inherit;}
 <div id="sidebar">
   <div class="sb-header">
     <h1>투자 노트</h1>
-    <p>리오의 공간</p>
+    <p>리오 · <span id="sb-account-name">기본 계좌</span></p>
   </div>
   <div class="sb-asset">
     <div class="label">총 자산</div>
@@ -760,12 +760,15 @@ function updateSeedDisplay() {
   const profit = totalEval - acc.seed;
   const retPct = acc.seed > 0 ? (profit / acc.seed * 100).toFixed(2) : "0.00";
   const sign = profit >= 0 ? "+" : "";
-  const posNeg = profit >= 0 ? "pos" : "neg";
-  document.getElementById("sb-total").textContent = "₩" + Math.round(totalEval).toLocaleString();
-  const retEl = document.getElementById("sb-ret");
-  retEl.textContent = `${sign}₩${Math.round(Math.abs(profit)).toLocaleString()} (${sign}${retPct}%)`;
-  retEl.style.color = profit >= 0 ? "var(--green)" : "var(--red)";
-  document.getElementById("sb-account-name").textContent = acc.name;
+  const sbTotal = document.getElementById("sb-total");
+  const sbRet = document.getElementById("sb-ret");
+  const sbName = document.getElementById("sb-account-name");
+  if (sbTotal) sbTotal.textContent = "₩" + Math.round(totalEval).toLocaleString();
+  if (sbRet) {
+    sbRet.textContent = `${sign}₩${Math.round(Math.abs(profit)).toLocaleString()} (${sign}${retPct}%)`;
+    sbRet.style.color = profit >= 0 ? "var(--green)" : "var(--red)";
+  }
+  if (sbName) sbName.textContent = acc.name;
 }
 
 function renderAll() {
