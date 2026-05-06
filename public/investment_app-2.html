@@ -228,6 +228,7 @@ body.dark .tag-logic{background:#0c2340;color:#85b7eb;}
     <div class="nav-group">투자</div>
     <div class="nav-item" data-sec="portfolio"><i class="ti ti-chart-bar"></i> 포트폴리오</div>
     <div class="nav-item" data-sec="sells"><i class="ti ti-coins"></i> 매도 기록</div>
+    <div class="nav-item" data-sec="dividends"><i class="ti ti-currency-dollar"></i> 배당 기록</div>
     <div class="nav-item" data-sec="thesis"><i class="ti ti-file-text"></i> 투자 Thesis</div>
     <div class="nav-group">공부</div>
     <div class="nav-item" data-sec="industry"><i class="ti ti-building-factory"></i> 산업 공부</div>
@@ -280,6 +281,9 @@ body.dark .tag-logic{background:#0c2340;color:#85b7eb;}
             <button class="rte-btn" onclick="document.execCommand('formatBlock',false,'p')">P</button>
             <div class="rte-sep"></div>
             <button class="rte-btn" onclick="document.execCommand('insertUnorderedList')">• 목록</button>
+            <div class="rte-sep"></div>
+            <button class="rte-btn" onclick="document.getElementById('memo-img-input').click()"><i class="ti ti-photo"></i> 이미지</button>
+            <input type="file" id="memo-img-input" accept="image/*" style="display:none;" onchange="insertMemoImage(this)">
           </div>
           <div id="daily-memo-input" contenteditable="true" data-placeholder="오늘 시장 보면서 느낀 것, 특이사항을 자유롭게 적어요..."></div>
         </div>
@@ -959,23 +963,89 @@ function confirmSell() {
   renderAll();
 }
 
+function calcHoldingDays(buyDate, sellDate) {
+  try {
+    const b = new Date(buyDate.replace(/\./g, "-"));
+    const s = new Date(sellDate.replace(/\./g, "-"));
+    const diff = Math.round((s - b) / (1000*60*60*24));
+    return diff > 0 ? diff : null;
+  } catch { return null; }
+}
+
 function renderSells() {
   const el = document.getElementById("sells-list");
   if (!el) return;
   const sells = SS();
-  if (sells.length === 0) { el.innerHTML=`<div style="text-align:center;color:var(--text3);padding:40px;font-size:13px;">아직 매도 기록이 없어요.</div>`; return; }
-  el.innerHTML = sells.map((s,i) => {
-    const pos = parseFloat(s.ret) >= 0;
-    const sym = s.market==="미국"?"$":"₩";
-    return `<div class="li" style="margin-bottom:8px;">
+
+  // Total summary
+  let totalInvest = 0, totalReturn = 0;
+  sells.forEach(s => {
+    const rate = s.market==="미국" ? XR : 1;
+    totalInvest += s.buyPrice * s.qty * rate;
+    totalReturn += s.sellPrice * s.qty * rate;
+  });
+  const totalProfit = totalReturn - totalInvest;
+  const totalRet = totalInvest > 0 ? (totalProfit/totalInvest*100).toFixed(1) : "0.0";
+  const tpos = totalProfit >= 0;
+
+  let html = "";
+  if (sells.length > 0) {
+    html += `<div class="card" style="margin-bottom:10px;padding:12px 14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:14px;font-weight:500;">${s.ticker} <span class="badge-${s.market==="미국"?"us":"kr"}">${s.market}</span></span>
-        <span class="${pos?"pos":"neg"}" style="font-weight:500;font-size:14px;">${pos?"+":""}${s.ret}%</span>
+        <div>
+          <div style="font-size:11px;color:var(--text2);">총 매도 수익</div>
+          <div style="font-size:18px;font-weight:600;" class="${tpos?"pos":"neg"}">${tpos?"+":""}₩${Math.round(Math.abs(totalProfit)).toLocaleString()}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:var(--text2);">총 수익률</div>
+          <div style="font-size:18px;font-weight:600;" class="${tpos?"pos":"neg"}">${tpos?"+":""}${totalRet}%</div>
+        </div>
       </div>
-      <div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;">매수 ${sym}${Number(s.buyPrice).toLocaleString()} → 매도 ${sym}${Number(s.sellPrice).toLocaleString()} · ${s.qty}주 · ${s.sellDate}${s.reason?`<br>이유: ${s.reason}`:""}</div>
-      <div style="text-align:right;margin-top:6px;"><button class="btn btn-sm btn-danger" onclick="deleteSell(${i})"><i class="ti ti-trash"></i></button></div>
+    </div>`;
+  }
+
+  if (sells.length === 0) { el.innerHTML=`<div style="text-align:center;color:var(--text3);padding:40px;font-size:13px;">아직 매도 기록이 없어요.</div>`; return; }
+
+  html += sells.map((s,i) => {
+    const pos = parseFloat(s.ret) >= 0;
+    const sym = s.market==="미국" ? "$" : "₩";
+    const rate = s.market==="미국" ? XR : 1;
+    const invest = Math.round(s.buyPrice * s.qty * rate);
+    const recover = Math.round(s.sellPrice * s.qty * rate);
+    const profit = recover - invest;
+    const days = calcHoldingDays(s.date, s.sellDate);
+    return `<div class="li" style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:14px;font-weight:600;">${s.ticker} <span class="badge-${s.market==="미국"?"us":"kr"}">${s.market}</span>${s.name?` <span style="font-size:12px;color:var(--text2);font-weight:400;">${s.name}</span>`:""}</span>
+        <span class="${pos?"pos":"neg"}" style="font-weight:600;font-size:15px;">${pos?"+":""}${s.ret}%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;">
+        <div style="background:var(--bg1);border-radius:var(--radius-sm);padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--text3);">투자금</div>
+          <div style="font-size:13px;font-weight:500;">₩${invest.toLocaleString()}</div>
+        </div>
+        <div style="background:var(--bg1);border-radius:var(--radius-sm);padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--text3);">회수금</div>
+          <div style="font-size:13px;font-weight:500;">₩${recover.toLocaleString()}</div>
+        </div>
+        <div style="background:var(--bg1);border-radius:var(--radius-sm);padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--text3);">수익금</div>
+          <div style="font-size:13px;font-weight:500;" class="${pos?"pos":"neg"}">${pos?"+":""}₩${Math.abs(profit).toLocaleString()}</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6;">
+        ${sym}${Number(s.buyPrice).toLocaleString()} → ${sym}${Number(s.sellPrice).toLocaleString()} · ${s.qty}주
+        ${days?` · 보유 ${days}일`:""}
+        · 매도일 ${s.sellDate}
+        ${s.reason?`<br>이유: ${s.reason}`:""}
+      </div>
+      <div style="text-align:right;margin-top:6px;">
+        <button class="btn btn-sm btn-danger" onclick="deleteSell(${i})"><i class="ti ti-trash"></i></button>
+      </div>
     </div>`;
   }).join("");
+
+  el.innerHTML = html;
 }
 function deleteSell(i) { if(!confirm("삭제할까요?"))return; SS().splice(i,1); serverSave("accounts",S.accounts); renderSells(); }
 
@@ -1379,13 +1449,28 @@ function loadMemoUI() {
   if (wr) wr.value = "";
   renderMemoHistory();
   renderWeeklySummary();
-  renderWeeklyHistory();
+  if (typeof renderWeeklyHistory === "function") renderWeeklyHistory();
 }
 function saveDailyMemo() {
-  const text = document.getElementById("daily-memo-input").value.trim();
-  if (!text) return;
-  S.dailyMemos[TODAY_STR] = {text, date:TODAY_STR};
+  const el = document.getElementById("daily-memo-input");
+  if (!el) return;
+  const text = el.innerText.trim();
+  const html = el.innerHTML;
+  if (!text) { alert("내용을 입력해줘!"); return; }
+  // Collect attached images
+  const images = [];
+  el.querySelectorAll("img").forEach(img => { if(img.src) images.push(img.src); });
+  S.dailyMemos[TODAY_STR] = {text, html, date:TODAY_STR, images};
+  // Record daily return
+  const {ret} = calcAcc(ACC());
+  if (!S.returnHistory) S.returnHistory=[];
+  const ei = S.returnHistory.findIndex(r=>r.date===TODAY_STR);
+  if (ei!==-1) S.returnHistory[ei].ret=parseFloat(ret);
+  else S.returnHistory.push({date:TODAY_STR, ret:parseFloat(ret)});
+  if (S.returnHistory.length>90) S.returnHistory=S.returnHistory.slice(-90);
+  serverSave("returnHistory", S.returnHistory);
   serverSave("dailyMemos", S.dailyMemos);
+  el.innerHTML = ""; // 저장 후 초기화
   renderMemoHistory(); renderWeeklySummary();
   alert("저장됐어!");
 }
@@ -2073,6 +2158,32 @@ async function loadIndNews() {
   } catch(e) {
     el.innerHTML=`<div style="color:var(--text3);font-size:13px;">뉴스를 불러올 수 없어요.</div>`;
   }
+}
+
+
+function insertMemoImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = document.createElement("img");
+    img.src = e.target.result;
+    img.style.cssText = "max-width:100%;border-radius:6px;margin:6px 0;display:block;";
+    const editor = document.getElementById("daily-memo-input");
+    if (editor) {
+      editor.focus();
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        range.insertNode(img);
+        range.collapse(false);
+      } else {
+        editor.appendChild(img);
+      }
+    }
+    input.value = "";
+  };
+  reader.readAsDataURL(file);
 }
 
 // ── MODAL HELPERS ──────────────────────────────────────────────
