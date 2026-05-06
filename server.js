@@ -14,20 +14,119 @@ app.use(express.static(path.join(__dirname, "public")));
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
 
-// Claude 대화
+const CHAT_SYSTEMS = {
+  daily: `당신은 리오의 전문 투자 분석 파트너입니다. 리오는 투자를 막 시작하는 학습자입니다.
+
+역할:
+- 오늘의 시장 흐름을 분석하고 핵심 인사이트를 제공
+- 실시간 뉴스와 데이터를 바탕으로 구체적인 분석 제공
+- 투자 초보자가 이해할 수 있도록 명확하게 설명
+
+답변 원칙:
+- 항상 웹 검색으로 최신 정보 확인 후 답변
+- 구조화된 형식으로 핵심부터 설명
+- 단순 나열 금지 — 인과관계와 맥락 설명
+- 리오가 스스로 생각할 수 있는 질문으로 마무리
+- 한국어로 답변`,
+
+  weekly: `당신은 리오의 전문 투자 분석 파트너입니다.
+
+역할:
+- 이번 주 시장 흐름의 큰 그림을 분석
+- 리오의 투자 판단을 깊이 있게 복기
+- 다음 주 주목할 포인트 제시
+
+답변 원칙:
+- 항상 웹 검색으로 이번 주 주요 이슈 확인
+- 거시경제 → 섹터 → 개별 종목 순서로 분석
+- 리오의 판단에서 배울 점과 개선할 점 균형있게 피드백
+- 한국어로 답변`,
+
+  thesis: `당신은 리오의 전문 투자 분석 파트너입니다.
+
+역할:
+- 특정 종목의 투자 thesis를 체계적으로 구축
+- 기업의 경쟁력, 성장 동력, 리스크를 깊이 분석
+- 반론을 통해 투자 논리를 더 견고하게 만들기
+
+답변 원칙:
+- 웹 검색으로 최신 기업 정보, 실적, 뉴스 확인
+- 산업 구조 → 기업 포지션 → 재무 → 리스크 순으로 분석
+- 투자 thesis의 핵심 가정이 무엇인지 명확히 짚기
+- 한국어로 답변`,
+
+  industry: `당신은 리오의 전문 투자 분석 파트너입니다.
+
+역할:
+- 특정 산업의 구조와 성장 동력을 깊이 분석
+- 산업 내 핵심 플레이어와 경쟁 구도 설명
+- 투자 관점에서 어떤 기업이 유리한지 분석
+
+답변 원칙:
+- 웹 검색으로 최신 산업 트렌드, 뉴스 확인
+- 산업 성장 이유 → 수혜 기업 → 리스크 순으로 설명
+- 숫자와 구체적 사례로 설명
+- 한국어로 답변`,
+};
+
+// Claude 대화 (웹 서치 포함)
 app.post("/api/chat", async (req, res) => {
   try {
-    const { messages, system } = req.body;
+    const { messages, section } = req.body;
+    const system = CHAT_SYSTEMS[section] || CHAT_SYSTEMS.daily;
+
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 1000,
+      max_tokens: 2000,
       system,
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
       messages,
     });
-    res.json({ text: response.content[0].text });
+
+    // Extract text from response (may include tool use)
+    let text = "";
+    for (const block of response.content) {
+      if (block.type === "text") text += block.text;
+    }
+
+    // If tool was used, do a follow-up to get final answer
+    if (response.stop_reason === "tool_use") {
+      const toolResults = response.content
+        .filter(b => b.type === "tool_use")
+        .map(b => ({ type: "tool_result", tool_use_id: b.id, content: "검색 완료" }));
+
+      const followUp = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 2000,
+        system,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        messages: [
+          ...messages,
+          { role: "assistant", content: response.content },
+          { role: "user", content: toolResults },
+        ],
+      });
+
+      text = followUp.content.filter(b => b.type === "text").map(b => b.text).join("");
+    }
+
+    res.json({ text: text || "응답을 받지 못했어." });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: e.message });
+    // Fallback without web search
+    try {
+      const { messages, section } = req.body;
+      const system = CHAT_SYSTEMS[section] || CHAT_SYSTEMS.daily;
+      const response = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 2000,
+        system,
+        messages,
+      });
+      res.json({ text: response.content[0]?.text || "응답을 받지 못했어." });
+    } catch (e2) {
+      res.status(500).json({ error: e2.message });
+    }
   }
 });
 
@@ -116,7 +215,6 @@ app.post("/api/save", async (req, res) => {
     if (error) throw error;
     res.json({ ok: true });
   } catch (e) {
-    console.error(e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -132,7 +230,6 @@ app.get("/api/load", async (req, res) => {
     });
     res.json(result);
   } catch (e) {
-    console.error(e);
     res.status(500).json({ error: e.message });
   }
 });

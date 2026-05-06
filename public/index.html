@@ -218,6 +218,12 @@ textarea,input[type=text],input[type=number],select{font-family:inherit;}
     <div class="nav-item" data-sec="principles"><i class="ti ti-list-check"></i> 내 투자 원칙</div>
     <div class="nav-item" data-sec="mistakes"><i class="ti ti-refresh-alert"></i> 틀린 판단 복기</div>
   </nav>
+  <!-- Account Selector -->
+  <div style="margin:0 10px 8px;display:flex;flex-direction:column;gap:6px;">
+    <div style="font-size:10px;color:var(--text3);padding:0 4px;">계좌 선택</div>
+    <div id="account-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+    <button class="btn" style="font-size:11px;padding:5px 8px;" onclick="openAccountModal()"><i class="ti ti-plus"></i> 계좌 추가</button>
+  </div>
   <div class="sb-footer" style="flex-direction:column;gap:8px;align-items:stretch;">
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:11px;color:var(--text3);">리오</span>
@@ -252,9 +258,7 @@ textarea,input[type=text],input[type=number],select{font-family:inherit;}
         </div>
         <div class="card">
           <div class="card-title">내 포트폴리오 오늘</div>
-          <div class="mrow"><span class="mname">평가금액</span><span class="mval" id="d-eval">₩0</span></div>
-          <div class="mrow"><span class="mname">오늘 수익</span><span class="mval pos">—</span></div>
-          <div class="mrow"><span class="mname">총 수익률</span><span class="mval" id="d-ret">—</span></div>
+          <div id="daily-accounts-summary"></div>
         </div>
       </div>
       <div class="card">
@@ -572,14 +576,13 @@ const EXCHANGE_RATE = 1384;
 
 // ── STATE ──────────────────────────────────────────────────────
 let state = {
-  holdings: [],
-  sells: [],
+  accounts: [{ id: "acc1", name: "기본 계좌", seed: 5000000, holdings: [], sells: [] }],
+  currentAccount: "acc1",
   theses: [],
   industries: [],
   principles: [],
   mistakes: [],
   watchlist: [],
-  seed: 5000000,
   dailyMemos: {},
   weeklyReview: "",
   chats: { daily: [], weekly: [], thesis: [], industry: [] },
@@ -587,6 +590,13 @@ let state = {
   editIdx: { holding: -1, thesis: -1, industry: -1, principle: -1, mistake: -1 },
   sellIdx: -1,
 };
+
+function getAccount() {
+  return state.accounts.find(a => a.id === state.currentAccount) || state.accounts[0];
+}
+function getHoldings() { return getAccount().holdings || []; }
+function getSells() { return getAccount().sells || []; }
+function getSeed() { return getAccount().seed || 0; }
 
 function save() { localStorage.setItem("invest-app-v2", JSON.stringify(state)); }
 function load() {
@@ -610,7 +620,7 @@ async function serverLoad() {
     const res = await fetch("/api/load");
     const data = await res.json();
     if (data && !data.error) {
-      const keys = ["holdings","sells","theses","industries","principles","mistakes","watchlist","seed","dailyMemos","weeklyReview","chats","theme"];
+      const keys = ["accounts","currentAccount","theses","industries","principles","mistakes","watchlist","dailyMemos","weeklyReview","chats","theme"];
       keys.forEach(k => { if (data[k] !== undefined) state[k] = data[k]; });
       save();
     }
@@ -646,7 +656,112 @@ function setupNav() {
   });
 }
 
+
+// ── ACCOUNTS ──────────────────────────────────────────────────
+let editAccountId = null;
+
+function renderAccountList() {
+  const el = document.getElementById("account-list");
+  if (!el) return;
+  el.innerHTML = state.accounts.map(acc => {
+    const holdings = acc.holdings || [];
+    const seed = acc.seed || 0;
+    let totalEval = 0;
+    holdings.forEach(h => {
+      const rate = h.market === "미국" ? EXCHANGE_RATE : 1;
+      totalEval += h.currPrice * h.qty * rate;
+    });
+    const ret = seed > 0 ? ((totalEval - seed) / seed * 100).toFixed(1) : "0.0";
+    const pos = parseFloat(ret) >= 0;
+    const isActive = acc.id === state.currentAccount;
+    return `<div onclick="switchAccount('${acc.id}')" style="padding:8px 10px;border-radius:var(--sm-radius);background:${isActive?"var(--text1)":"var(--bg1)"};color:${isActive?"var(--bg0)":"var(--text2)"};cursor:pointer;font-size:12px;display:flex;justify-content:space-between;align-items:center;border:0.5px solid ${isActive?"var(--text1)":"var(--border)"};">
+      <div>
+        <div style="font-weight:500;">${acc.name}</div>
+        <div style="font-size:10px;opacity:0.7;">₩${Math.round(totalEval).toLocaleString()}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <span style="font-size:11px;color:${isActive?(pos?"#4ade80":"#f87171"):(pos?"var(--green)":"var(--red)")}">${pos?"+":""}${ret}%</span>
+        ${!isActive ? `<button onclick="event.stopPropagation();editAccount('${acc.id}')" style="background:none;border:none;cursor:pointer;color:inherit;font-size:12px;padding:0 2px;"><i class="ti ti-edit"></i></button>` : ""}
+        ${state.accounts.length > 1 && !isActive ? `<button onclick="event.stopPropagation();deleteAccount('${acc.id}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:12px;padding:0 2px;"><i class="ti ti-trash"></i></button>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function switchAccount(id) {
+  state.currentAccount = id;
+  save();
+  renderAll();
+  renderAccountList();
+  updateSeedDisplay();
+}
+
+function openAccountModal(id = null) {
+  editAccountId = id;
+  if (id) {
+    const acc = state.accounts.find(a => a.id === id);
+    document.getElementById("account-modal-title").textContent = "계좌 수정";
+    document.getElementById("acc-name").value = acc.name;
+    document.getElementById("acc-seed").value = acc.seed;
+  } else {
+    document.getElementById("account-modal-title").textContent = "계좌 추가";
+    document.getElementById("acc-name").value = "";
+    document.getElementById("acc-seed").value = "";
+  }
+  openModal("modal-account");
+}
+
+function editAccount(id) { openAccountModal(id); }
+
+function saveAccount() {
+  const name = document.getElementById("acc-name").value.trim();
+  const seed = parseInt(document.getElementById("acc-seed").value) || 0;
+  if (!name) return;
+  if (editAccountId) {
+    const acc = state.accounts.find(a => a.id === editAccountId);
+    if (acc) { acc.name = name; acc.seed = seed; }
+  } else {
+    const id = "acc" + Date.now();
+    state.accounts.push({ id, name, seed, holdings: [], sells: [] });
+  }
+  serverSave("accounts", state.accounts);
+  renderAccountList();
+  updateSeedDisplay();
+  closeModal("modal-account");
+}
+
+function deleteAccount(id) {
+  if (!confirm("이 계좌를 삭제할까요? 보유 종목도 함께 삭제됩니다.")) return;
+  state.accounts = state.accounts.filter(a => a.id !== id);
+  if (state.currentAccount === id) state.currentAccount = state.accounts[0].id;
+  serverSave("accounts", state.accounts);
+  renderAll();
+  renderAccountList();
+}
+
+function updateSeedDisplay() {
+  const acc = getAccount();
+  const holdings = getHoldings();
+  let totalEval = 0;
+  holdings.forEach(h => {
+    const rate = h.market === "미국" ? EXCHANGE_RATE : 1;
+    totalEval += h.currPrice * h.qty * rate;
+  });
+  const profit = totalEval - acc.seed;
+  const retPct = acc.seed > 0 ? (profit / acc.seed * 100).toFixed(2) : "0.00";
+  const sign = profit >= 0 ? "+" : "";
+  const posNeg = profit >= 0 ? "pos" : "neg";
+  document.getElementById("sb-total").textContent = "₩" + Math.round(totalEval).toLocaleString();
+  const retEl = document.getElementById("sb-ret");
+  retEl.textContent = `${sign}₩${Math.round(Math.abs(profit)).toLocaleString()} (${sign}${retPct}%)`;
+  retEl.style.color = profit >= 0 ? "var(--green)" : "var(--red)";
+  document.getElementById("sb-account-name").textContent = acc.name;
+}
+
 function renderAll() {
+  renderAccountList();
+  updateSeedDisplay();
+  renderDailyAccountsSummary();
   renderSidebar();
   renderPortfolio();
   renderSells();
@@ -673,16 +788,48 @@ function applyTheme() {
 // ── SIDEBAR / PORTFOLIO METRICS ────────────────────────────────
 function calcPortfolio() {
   let totalEval = 0;
-  state.holdings.forEach(h => {
+  getHoldings().forEach(h => {
     const rate = h.market === "미국" ? EXCHANGE_RATE : 1;
     totalEval += h.currPrice * h.qty * rate;
   });
-  const profit = totalEval - state.seed;
-  const retPct = state.seed > 0 ? (profit / state.seed * 100).toFixed(2) : "0.00";
-  return { totalEval, profit, retPct };
+  const seed = getSeed();
+  const profit = totalEval - seed;
+  const retPct = seed > 0 ? (profit / seed * 100).toFixed(2) : "0.00";
+  return { totalEval, profit, retPct, seed };
+}
+
+function renderDailyAccountsSummary() {
+  const el = document.getElementById("daily-accounts-summary");
+  if (!el) return;
+  let html = "";
+  let grandTotal = 0;
+  let grandSeed = 0;
+  state.accounts.forEach(acc => {
+    const holdings = acc.holdings || [];
+    let totalEval = 0;
+    holdings.forEach(h => {
+      const rate = h.market === "미국" ? EXCHANGE_RATE : 1;
+      totalEval += h.currPrice * h.qty * rate;
+    });
+    const seed = acc.seed || 0;
+    grandTotal += totalEval;
+    grandSeed += seed;
+    const profit = totalEval - seed;
+    const ret = seed > 0 ? (profit / seed * 100).toFixed(1) : "0.0";
+    const pos = parseFloat(ret) >= 0;
+    html += `<div class="mrow"><span class="mname">${acc.name}</span><span class="mval"><span style="margin-right:8px;font-size:12px;color:var(--text2);">₩${Math.round(totalEval).toLocaleString()}</span><span class="${pos?"pos":"neg"}">${pos?"+":""}${ret}%</span></span></div>`;
+  });
+  if (state.accounts.length > 1) {
+    const totalProfit = grandTotal - grandSeed;
+    const totalRet = grandSeed > 0 ? (totalProfit / grandSeed * 100).toFixed(1) : "0.0";
+    const pos = parseFloat(totalRet) >= 0;
+    html += `<div class="mrow" style="border-top:0.5px solid var(--border);margin-top:4px;padding-top:8px;"><span class="mname" style="font-weight:500;">전체 합계</span><span class="mval"><span style="margin-right:8px;font-size:12px;color:var(--text2);">₩${Math.round(grandTotal).toLocaleString()}</span><span class="${pos?"pos":"neg"}" style="font-weight:500;">${pos?"+":""}${totalRet}%</span></span></div>`;
+  }
+  el.innerHTML = html;
 }
 
 function renderSidebar() {
+  renderDailyAccountsSummary();
   const { totalEval, profit, retPct } = calcPortfolio();
   document.getElementById("sb-total").textContent = "₩" + Math.round(totalEval).toLocaleString();
   const sign = profit >= 0 ? "+" : "";
@@ -701,17 +848,18 @@ function renderPortfolio() {
   const sign = profit >= 0 ? "+" : "";
   const posNeg = profit >= 0 ? "pos" : "neg";
   document.getElementById("portfolio-metrics").innerHTML = `
-    <div class="metric"><div class="mlabel">시드 머니</div><div class="mnum">₩${state.seed.toLocaleString()}</div></div>
+    <div class="metric"><div class="mlabel">시드 머니</div><div class="mnum">₩${seed.toLocaleString()}</div></div>
     <div class="metric"><div class="mlabel">평가금액</div><div class="mnum">₩${Math.round(totalEval).toLocaleString()}</div></div>
     <div class="metric"><div class="mlabel">총 수익</div><div class="mnum ${posNeg}">${sign}₩${Math.round(Math.abs(profit)).toLocaleString()}</div></div>
     <div class="metric"><div class="mlabel">총 수익률</div><div class="mnum ${posNeg}">${sign}${retPct}%</div></div>
   `;
   const tbody = document.getElementById("holdings-table");
-  if (state.holdings.length === 0) {
+  const holdings = getHoldings();
+  if (holdings.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px;">보유 종목이 없어요. 종목을 추가해보세요.</td></tr>`;
     return;
   }
-  tbody.innerHTML = state.holdings.map((h, i) => {
+  tbody.innerHTML = holdings.map((h, i) => {
     const ret = ((h.currPrice - h.buyPrice) / h.buyPrice * 100).toFixed(1);
     const pos = parseFloat(ret) >= 0;
     const sym = h.market === "미국" ? "$" : "₩";
@@ -757,9 +905,11 @@ function saveHolding() {
   };
   if (!h.ticker) return;
   const idx = state.editIdx.holding;
-  if (idx === -1) state.holdings.push(h);
-  else state.holdings[idx] = h;
-  serverSave("holdings", state.holdings); renderPortfolio(); closeModal("modal-holding");
+  const acc = getAccount();
+  if (!acc.holdings) acc.holdings = [];
+  if (idx === -1) acc.holdings.push(h);
+  else acc.holdings[idx] = h;
+  serverSave("accounts", state.accounts); renderPortfolio(); closeModal("modal-holding");
 }
 function deleteHolding(i) {
   if (!confirm("삭제할까요?")) return;
@@ -770,7 +920,7 @@ function deleteHolding(i) {
 // ── SELL ───────────────────────────────────────────────────────
 function openSellModal(i) {
   state.sellIdx = i;
-  const h = state.holdings[i];
+  const h = getHoldings()[i];
   document.getElementById("sell-modal-title").textContent = `매도 처리 — ${h.ticker}`;
   document.getElementById("sell-price").value = h.currPrice;
   document.getElementById("sell-date").value = TODAY_STR;
@@ -779,22 +929,25 @@ function openSellModal(i) {
 }
 function confirmSell() {
   const i = state.sellIdx;
-  const h = state.holdings[i];
+  const h = getHoldings()[i];
   const sellPrice = parseFloat(document.getElementById("sell-price").value) || h.currPrice;
   const sellDate = document.getElementById("sell-date").value || TODAY_STR;
   const reason = document.getElementById("sell-reason").value;
   const ret = ((sellPrice - h.buyPrice) / h.buyPrice * 100).toFixed(1);
-  state.sells.push({ ...h, sellPrice, sellDate, reason, ret });
-  state.holdings.splice(i, 1);
-  serverSave("holdings", state.holdings); serverSave("sells", state.sells); renderPortfolio(); renderSells(); closeModal("modal-sell");
+  const acc = getAccount();
+  if (!acc.sells) acc.sells = [];
+  acc.sells.push({ ...h, sellPrice, sellDate, reason, ret });
+  acc.holdings.splice(i, 1);
+  serverSave("accounts", state.accounts); renderPortfolio(); renderSells(); closeModal("modal-sell");
 }
 function renderSells() {
   const el = document.getElementById("sells-list");
-  if (state.sells.length === 0) {
+  const sells = getSells();
+  if (sells.length === 0) {
     el.innerHTML = `<div style="text-align:center;color:var(--text3);padding:40px;font-size:13px;">아직 매도 기록이 없어요.</div>`;
     return;
   }
-  el.innerHTML = state.sells.map((s, i) => {
+  el.innerHTML = sells.map((s, i) => {
     const pos = parseFloat(s.ret) >= 0;
     const sym = s.market === "미국" ? "$" : "₩";
     return `<div class="sell-item">
@@ -1431,7 +1584,7 @@ async function sendChat(key) {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ system: CHAT_SYSTEMS[key], messages })
+      body: JSON.stringify({ section: key, messages })
     });
     const data = await res.json();
     const reply = data.text || data.error || "응답을 받지 못했어.";
@@ -1448,7 +1601,7 @@ async function sendChat(key) {
 async function autoUpdatePrices() {
   if (state.holdings.length === 0) return;
   for (let i = 0; i < state.holdings.length; i++) {
-    const h = state.holdings[i];
+    const h = getHoldings()[i];
     try {
       // Map KR stocks
       let sym = h.ticker;
@@ -1456,11 +1609,11 @@ async function autoUpdatePrices() {
       const res = await fetch(`/api/price?sym=${encodeURIComponent(sym)}`);
       const data = await res.json();
       if (data.price && !data.error) {
-        state.holdings[i].currPrice = data.price;
+        getHoldings()[i].currPrice = data.price;
       }
     } catch(e) {}
   }
-  serverSave("holdings", state.holdings);
+  serverSave("accounts", state.accounts);
   renderPortfolio();
   renderSidebar();
 }
@@ -1487,6 +1640,22 @@ function closeModal(id) { document.getElementById(id).style.display = "none"; }
       <button onclick="chartPeriod='1y';loadChart(document.getElementById('chart-sym').textContent)" style="padding:4px 10px;border-radius:var(--sm-radius);border:0.5px solid var(--border);background:var(--bg1);color:var(--text2);font-size:11px;cursor:pointer;">1년</button>
     </div>
     <div id="chart-container" style="width:100%;min-height:200px;"></div>
+  </div>
+</div>
+
+<!-- Account Modal -->
+<div class="modal-overlay" id="modal-account" style="display:none;" onclick="if(event.target===this)closeModal('modal-account')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="account-modal-title">계좌 추가</span>
+      <button class="modal-close" onclick="closeModal('modal-account')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-field"><div class="field-label">계좌 이름</div><input type="text" class="field-input" id="acc-name" placeholder="예: 국내 주식, 미국 주식, 장기투자"></div>
+    <div class="modal-field"><div class="field-label">시드머니 (원)</div><input type="number" class="field-input" id="acc-seed" placeholder="예: 5000000"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveAccount()">저장</button>
+      <button class="btn" onclick="closeModal('modal-account')">취소</button>
+    </div>
   </div>
 </div>
 </body>
