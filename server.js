@@ -13,124 +13,137 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
+const NEWS_API_KEY = process.env.NEWS_API_KEY;
 
-const CHAT_SYSTEMS = {
+const SYSTEMS = {
   daily: `당신은 리오의 전문 투자 분석 파트너입니다. 리오는 투자를 막 시작하는 학습자입니다.
-
-역할:
-- 오늘의 시장 흐름을 분석하고 핵심 인사이트를 제공
-- 실시간 뉴스와 데이터를 바탕으로 구체적인 분석 제공
-- 투자 초보자가 이해할 수 있도록 명확하게 설명
-
+오늘의 시장 흐름과 뉴스를 바탕으로 구체적이고 구조화된 분석을 제공하세요.
 답변 원칙:
-- 항상 웹 검색으로 최신 정보 확인 후 답변
-- 구조화된 형식으로 핵심부터 설명
-- 단순 나열 금지 — 인과관계와 맥락 설명
-- 리오가 스스로 생각할 수 있는 질문으로 마무리
+- 제공된 최신 뉴스를 반드시 참고하여 답변
+- 핵심 → 배경 → 영향 → 리오에게 시사점 순으로 구조화
+- 숫자와 구체적 사례 사용
+- 마지막에 리오가 생각해볼 질문 하나로 마무리
 - 한국어로 답변`,
 
   weekly: `당신은 리오의 전문 투자 분석 파트너입니다.
-
-역할:
-- 이번 주 시장 흐름의 큰 그림을 분석
-- 리오의 투자 판단을 깊이 있게 복기
-- 다음 주 주목할 포인트 제시
-
+이번 주 시장 흐름의 큰 그림을 분석하고 리오의 투자 판단을 깊이 복기합니다.
 답변 원칙:
-- 항상 웹 검색으로 이번 주 주요 이슈 확인
+- 제공된 뉴스로 이번 주 주요 이슈 파악
 - 거시경제 → 섹터 → 개별 종목 순서로 분석
-- 리오의 판단에서 배울 점과 개선할 점 균형있게 피드백
+- 리오 판단의 잘한 점과 개선점 균형있게 피드백
 - 한국어로 답변`,
 
   thesis: `당신은 리오의 전문 투자 분석 파트너입니다.
-
-역할:
-- 특정 종목의 투자 thesis를 체계적으로 구축
-- 기업의 경쟁력, 성장 동력, 리스크를 깊이 분석
-- 반론을 통해 투자 논리를 더 견고하게 만들기
-
+특정 종목의 투자 thesis를 체계적으로 구축합니다.
 답변 원칙:
-- 웹 검색으로 최신 기업 정보, 실적, 뉴스 확인
-- 산업 구조 → 기업 포지션 → 재무 → 리스크 순으로 분석
-- 투자 thesis의 핵심 가정이 무엇인지 명확히 짚기
+- 제공된 뉴스로 최신 기업 정보 파악
+- 산업 구조 → 기업 포지션 → 성장동력 → 리스크 순으로 분석
+- 반론을 통해 투자 논리를 더 견고하게
 - 한국어로 답변`,
 
   industry: `당신은 리오의 전문 투자 분석 파트너입니다.
-
-역할:
-- 특정 산업의 구조와 성장 동력을 깊이 분석
-- 산업 내 핵심 플레이어와 경쟁 구도 설명
-- 투자 관점에서 어떤 기업이 유리한지 분석
-
+특정 산업의 구조와 성장 동력을 깊이 분석합니다.
 답변 원칙:
-- 웹 검색으로 최신 산업 트렌드, 뉴스 확인
+- 제공된 최신 뉴스를 반드시 활용하여 답변
 - 산업 성장 이유 → 수혜 기업 → 리스크 순으로 설명
 - 숫자와 구체적 사례로 설명
 - 한국어로 답변`,
 };
 
-// Claude 대화 (웹 서치 포함)
+// News fetcher
+function fetchNews(query, pageSize = 5) {
+  return new Promise((resolve) => {
+    const encoded = encodeURIComponent(query);
+    const options = {
+      hostname: "newsapi.org",
+      path: `/v2/everything?q=${encoded}&pageSize=${pageSize}&sortBy=publishedAt&language=en&apiKey=${NEWS_API_KEY}`,
+      method: "GET",
+      headers: { "User-Agent": "invest-app/1.0" }
+    };
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => {
+        try {
+          const json = JSON.parse(data);
+          const articles = (json.articles || []).slice(0, pageSize).map(a => ({
+            title: a.title,
+            source: a.source?.name,
+            publishedAt: a.publishedAt?.slice(0, 10),
+            description: a.description,
+            url: a.url,
+          }));
+          resolve(articles);
+        } catch { resolve([]); }
+      });
+    });
+    req.on("error", () => resolve([]));
+    req.end();
+  });
+}
+
+// Extract search query from messages
+function extractQuery(messages, section) {
+  const lastMsg = messages[messages.length - 1]?.content || "";
+  const keywords = lastMsg.replace(/[^\w\s가-힣]/g, " ").trim().slice(0, 100);
+  if (section === "daily") return `stock market ${keywords} today`;
+  if (section === "weekly") return `stock market weekly ${keywords}`;
+  if (section === "industry") return `${keywords} industry market`;
+  return `${keywords} stock`;
+}
+
+// Claude 대화 with news context
 app.post("/api/chat", async (req, res) => {
   try {
     const { messages, section } = req.body;
-    const system = CHAT_SYSTEMS[section] || CHAT_SYSTEMS.daily;
+    const system = SYSTEMS[section] || SYSTEMS.daily;
+
+    // Fetch relevant news
+    const query = extractQuery(messages, section);
+    const news = await fetchNews(query, 5);
+
+    let newsContext = "";
+    if (news.length > 0) {
+      newsContext = "\n\n[최신 뉴스]\n" + news.map(a =>
+        `- ${a.publishedAt} | ${a.source} | ${a.title}\n  ${a.description || ""}`
+      ).join("\n");
+    }
+
+    // Add news to last message
+    const enrichedMessages = messages.map((m, i) => {
+      if (i === messages.length - 1 && m.role === "user") {
+        return { ...m, content: m.content + newsContext };
+      }
+      return m;
+    });
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 2000,
       system,
-      tools: [{ type: "web_search_20250305", name: "web_search" }],
-      messages,
+      messages: enrichedMessages,
     });
 
-    // Extract text from response (may include tool use)
-    let text = "";
-    for (const block of response.content) {
-      if (block.type === "text") text += block.text;
-    }
-
-    // If tool was used, do a follow-up to get final answer
-    if (response.stop_reason === "tool_use") {
-      const toolResults = response.content
-        .filter(b => b.type === "tool_use")
-        .map(b => ({ type: "tool_result", tool_use_id: b.id, content: "검색 완료" }));
-
-      const followUp = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 2000,
-        system,
-        tools: [{ type: "web_search_20250305", name: "web_search" }],
-        messages: [
-          ...messages,
-          { role: "assistant", content: response.content },
-          { role: "user", content: toolResults },
-        ],
-      });
-
-      text = followUp.content.filter(b => b.type === "text").map(b => b.text).join("");
-    }
-
-    res.json({ text: text || "응답을 받지 못했어." });
+    res.json({ text: response.content[0]?.text || "응답을 받지 못했어." });
   } catch (e) {
     console.error(e);
-    // Fallback without web search
-    try {
-      const { messages, section } = req.body;
-      const system = CHAT_SYSTEMS[section] || CHAT_SYSTEMS.daily;
-      const response = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 2000,
-        system,
-        messages,
-      });
-      res.json({ text: response.content[0]?.text || "응답을 받지 못했어." });
-    } catch (e2) {
-      res.status(500).json({ error: e2.message });
-    }
+    res.status(500).json({ error: e.message });
   }
 });
 
-// 주가 차트
+// News API endpoint
+app.get("/api/news", async (req, res) => {
+  try {
+    const { q, size } = req.query;
+    if (!q) return res.status(400).json({ error: "q required" });
+    const articles = await fetchNews(q, parseInt(size) || 5);
+    res.json({ articles });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Chart data
 app.get("/api/chart", async (req, res) => {
   const { sym, period } = req.query;
   if (!sym) return res.status(400).json({ error: "sym required" });
@@ -179,7 +192,7 @@ app.get("/api/chart", async (req, res) => {
   request.end();
 });
 
-// 현재가 자동 조회
+// Price
 app.get("/api/price", async (req, res) => {
   const { sym } = req.query;
   if (!sym) return res.status(400).json({ error: "sym required" });
@@ -187,7 +200,7 @@ app.get("/api/price", async (req, res) => {
     hostname: "query1.finance.yahoo.com",
     path: `/v8/finance/chart/${encodeURIComponent(sym)}?range=1d&interval=1d`,
     method: "GET",
-    headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    headers: { "User-Agent": "Mozilla/5.0" }
   };
   const request = https.request(options, (response) => {
     let data = "";
@@ -205,33 +218,24 @@ app.get("/api/price", async (req, res) => {
   request.end();
 });
 
-// 데이터 저장
+// Save/Load
 app.post("/api/save", async (req, res) => {
   try {
     const { key, value } = req.body;
-    const { error } = await supabase
-      .from("app_data")
-      .upsert({ key, value: JSON.stringify(value), updated_at: new Date().toISOString() }, { onConflict: "key" });
+    const { error } = await supabase.from("app_data").upsert({ key, value: JSON.stringify(value), updated_at: new Date().toISOString() }, { onConflict: "key" });
     if (error) throw error;
     res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 데이터 불러오기
 app.get("/api/load", async (req, res) => {
   try {
     const { data, error } = await supabase.from("app_data").select("key, value");
     if (error) throw error;
     const result = {};
-    data.forEach((row) => {
-      try { result[row.key] = JSON.parse(row.value); } catch { result[row.key] = row.value; }
-    });
+    data.forEach(row => { try { result[row.key] = JSON.parse(row.value); } catch { result[row.key] = row.value; } });
     res.json(result);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 const PORT = process.env.PORT || 3000;
