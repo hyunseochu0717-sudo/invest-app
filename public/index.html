@@ -1755,23 +1755,49 @@ function renderTargetRet() {
 
 // ── DIVIDENDS ─────────────────────────────────────────────────
 function openDividendModal() {
-  ["div-ticker","div-amount","div-qty"].forEach(id=>{document.getElementById(id).value="";});
+  // Populate holding select
+  const sel = document.getElementById("div-holding-select");
+  sel.innerHTML = '<option value="">종목을 선택하세요</option>';
+  HH().forEach((h, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = `${h.ticker} (${h.market}) — ${h.qty}주`;
+    sel.appendChild(opt);
+  });
+  document.getElementById("div-amount").value = "";
   document.getElementById("div-date").value = TODAY_STR;
-  document.getElementById("div-currency").value = "USD";
+  document.getElementById("div-holding-info").style.display = "none";
   openModal("modal-dividend");
 }
+
+function onDivHoldingSelect() {
+  const idx = parseInt(document.getElementById("div-holding-select").value);
+  const info = document.getElementById("div-holding-info");
+  if (isNaN(idx)) { info.style.display="none"; return; }
+  const h = HH()[idx];
+  const sym = h.market==="미국" ? "$" : "₩";
+  info.style.display = "block";
+  info.innerHTML = `<b>${h.ticker}</b> · ${h.market} · ${h.qty}주 · 현재가 ${sym}${Number(h.currPrice).toLocaleString()}`;
+}
+
 function saveDividend() {
-  const ticker = document.getElementById("div-ticker").value.trim().toUpperCase();
-  if (!ticker) return;
+  const idx = parseInt(document.getElementById("div-holding-select").value);
+  if (isNaN(idx)) { alert("종목을 선택해줘!"); return; }
+  const h = HH()[idx];
   const amount = parseFloat(document.getElementById("div-amount").value)||0;
-  const qty = parseInt(document.getElementById("div-qty").value)||0;
-  const currency = document.getElementById("div-currency").value;
-  const total = amount * qty * (currency==="USD" ? XR : 1);
-  const d = { ticker, amount, qty, currency, date:document.getElementById("div-date").value||TODAY_STR, total:Math.round(total) };
+  if (!amount) { alert("배당금을 입력해줘!"); return; }
+  const currency = h.market==="미국" ? "USD" : "KRW";
+  const total = Math.round(amount * h.qty * (currency==="USD" ? XR : 1));
+  const d = {
+    ticker: h.ticker, market: h.market,
+    amount, qty: h.qty, currency,
+    date: document.getElementById("div-date").value||TODAY_STR,
+    total
+  };
   if (!S.dividends) S.dividends = [];
   S.dividends.push(d);
   serverSave("dividends", S.dividends);
-  ["div-ticker","div-amount","div-qty"].forEach(id=>{document.getElementById(id).value="";});
+  document.getElementById("div-amount").value = "";
   closeModal("modal-dividend");
   renderDividends();
 }
@@ -2225,11 +2251,15 @@ function closeModal(id) { document.getElementById(id).style.display="none"; }
 <div class="overlay" id="modal-dividend" style="display:none;" onclick="if(event.target===this)closeModal('modal-dividend')">
   <div class="modal">
     <div class="modal-hd"><span class="modal-title">배당 추가</span><button class="modal-close" onclick="closeModal('modal-dividend')"><i class="ti ti-x"></i></button></div>
-    <div class="field"><label>종목명</label><input type="text" class="finput" id="div-ticker" placeholder="예: AAPL"></div>
-    <div class="field"><label>주당 배당금</label><input type="number" class="finput" id="div-amount" placeholder="예: 0.24"></div>
-    <div class="field"><label>보유 주수</label><input type="number" class="finput" id="div-qty" placeholder="예: 10"></div>
-    <div class="field"><label>통화</label><select class="finput" id="div-currency"><option value="USD">USD ($)</option><option value="KRW">KRW (₩)</option></select></div>
-    <div class="field"><label>배당일</label><input type="text" class="finput" id="div-date" placeholder="예: 2026.05.07"></div>
+    <div class="field">
+      <label>보유 종목 선택</label>
+      <select class="finput" id="div-holding-select" onchange="onDivHoldingSelect()">
+        <option value="">종목을 선택하세요</option>
+      </select>
+    </div>
+    <div id="div-holding-info" style="display:none;background:var(--bg1);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--text2);"></div>
+    <div class="field"><label>주당 배당금</label><input type="number" class="finput" id="div-amount" placeholder="예: 0.24 (USD) 또는 500 (KRW)"></div>
+    <div class="field"><label>배당일</label><input type="text" class="finput" id="div-date"></div>
     <div class="modal-acts"><button class="btn-primary" onclick="saveDividend()">저장</button><button class="btn" onclick="closeModal('modal-dividend')">취소</button></div>
   </div>
 </div>
