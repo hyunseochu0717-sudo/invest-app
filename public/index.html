@@ -174,6 +174,42 @@ body.dark .tag-logic{background:#0c2340;color:#85b7eb;}
 /* CHART */
 #chart-container svg{width:100%;overflow:visible;}
 
+
+/* RICH TEXT EDITOR */
+.rte-wrap{border:0.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;}
+.rte-toolbar{display:flex;gap:3px;padding:5px 8px;border-bottom:0.5px solid var(--border);background:var(--bg1);flex-wrap:wrap;}
+.rte-btn{background:none;border:0.5px solid transparent;border-radius:4px;padding:3px 7px;font-size:12px;color:var(--text2);cursor:pointer;font-family:inherit;}
+.rte-btn:hover{background:var(--bg0);border-color:var(--border);color:var(--text1);}
+.rte-btn.active{background:var(--bg0);border-color:var(--border);color:var(--text1);}
+.rte-sep{width:0.5px;background:var(--border);margin:3px 4px;}
+[contenteditable]{outline:none;min-height:80px;padding:10px;font-size:13px;line-height:1.7;color:var(--text1);}
+[contenteditable]:empty:before{content:attr(data-placeholder);color:var(--text3);}
+
+/* PIE CHART */
+.pie-wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+.pie-legend{display:flex;flex-direction:column;gap:6px;}
+.pie-leg-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);}
+.pie-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* NEWS */
+.news-item{padding:10px 0;border-bottom:0.5px solid var(--border);}
+.news-item:last-child{border-bottom:none;}
+.news-title{font-size:13px;color:var(--text1);font-weight:500;line-height:1.4;}
+.news-meta{font-size:11px;color:var(--text3);margin-top:3px;}
+
+/* HISTORY CHART */
+.hist-chart{width:100%;overflow:visible;}
+
+/* INDUSTRY DETAIL */
+.ind-detail-section{margin-bottom:16px;}
+.ind-detail-label{font-size:11px;font-weight:500;color:var(--text3);margin-bottom:6px;letter-spacing:.04em;}
+.player-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:13px;}
+.player-item:last-child{border-bottom:none;}
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.kpi-card{background:var(--bg1);border-radius:var(--radius-sm);padding:10px;text-align:center;}
+.kpi-val{font-size:16px;font-weight:600;color:var(--text1);}
+.kpi-lab{font-size:11px;color:var(--text3);margin-top:2px;}
+
 /* COLORS */
 .pos{color:var(--green);}
 .neg{color:var(--red);}
@@ -243,7 +279,20 @@ body.dark .tag-logic{background:#0c2340;color:#85b7eb;}
           <span>오늘의 메모</span>
           <button class="btn btn-sm" onclick="saveDailyMemo()"><i class="ti ti-device-floppy"></i> 저장</button>
         </div>
-        <textarea class="naked-ta" id="daily-memo-input" placeholder="오늘 시장 보면서 느낀 것, 특이사항을 자유롭게 적어요..."></textarea>
+        <div class="rte-wrap">
+          <div class="rte-toolbar">
+            <button class="rte-btn" onclick="rteCmd('bold')"><b>B</b></button>
+            <button class="rte-btn" onclick="rteCmd('italic')"><i>I</i></button>
+            <button class="rte-btn" onclick="rteCmd('underline')"><u>U</u></button>
+            <div class="rte-sep"></div>
+            <button class="rte-btn" onclick="rteCmd('formatBlock','h3')">H</button>
+            <button class="rte-btn" onclick="rteCmd('formatBlock','p')">P</button>
+            <div class="rte-sep"></div>
+            <button class="rte-btn" onclick="rteCmd('insertUnorderedList')">•</button>
+            <button class="rte-btn" onclick="rteCmd('insertOrderedList')">1.</button>
+          </div>
+          <div id="daily-memo-input" contenteditable="true" data-placeholder="오늘 시장 보면서 느낀 것, 특이사항을 자유롭게 적어요..."></div>
+        </div>
       </div>
       <div class="card" id="memo-history-card" style="display:none;">
         <div class="card-hd">이전 메모 기록</div>
@@ -281,12 +330,22 @@ body.dark .tag-logic{background:#0c2340;color:#85b7eb;}
     <!-- 포트폴리오 -->
     <div class="section" id="sec-portfolio">
       <div class="grid4" id="port-metrics"></div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-hd">섹터 비중</div>
+          <div id="sector-chart"><div style="color:var(--text3);font-size:13px;">종목을 추가하면 섹터 비중이 표시돼요.</div></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">수익률 히스토리</div>
+          <div id="history-chart"><div style="color:var(--text3);font-size:13px;">수익률 기록이 쌓이면 그래프가 표시돼요.</div></div>
+        </div>
+      </div>
       <div class="tbl-wrap">
         <div class="tbl-hd"><span>보유 종목</span><button class="btn btn-sm" onclick="openHoldingModal()"><i class="ti ti-plus"></i> 종목 추가</button></div>
         <table><thead><tr>
-          <th style="width:75px;">종목</th><th style="width:58px;">시장</th>
-          <th>매수가</th><th>현재가</th>
-          <th style="width:50px;">수량</th><th style="width:65px;">수익률</th>
+          <th style="width:70px;">종목</th><th style="width:55px;">시장</th>
+          <th>매수가</th><th>현재가</th><th>목표가</th>
+          <th style="width:48px;">수량</th><th style="width:62px;">수익률</th>
           <th style="width:110px;"></th>
         </tr></thead><tbody id="holdings-tbody"></tbody></table>
       </div>
@@ -307,13 +366,59 @@ body.dark .tag-logic{background:#0c2340;color:#85b7eb;}
       </div>
     </div>
 
-    <!-- 산업 공부 -->
+    <!-- 산업 공부 목록 -->
     <div class="section" id="sec-industry">
       <div class="grid3" id="industry-grid"></div>
       <div class="chat-box">
         <div class="chat-top"><button class="btn btn-sm" onclick="clearChat('industry')"><i class="ti ti-refresh"></i> 대화 초기화</button></div>
         <div class="chat-msgs" id="industry-msgs"></div>
         <div class="chat-input"><input type="text" id="industry-input" placeholder="공부하고 싶은 산업에 대해 질문해보세요..."><button class="btn-primary" onclick="sendChat('industry')">전송</button></div>
+      </div>
+    </div>
+
+    <!-- 산업 공부 상세 -->
+    <div class="section" id="sec-industry-detail">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+        <button class="btn btn-sm" onclick="goBackToIndustry()"><i class="ti ti-arrow-left"></i> 목록으로</button>
+        <h3 id="ind-detail-name" style="font-size:15px;font-weight:600;"></h3>
+      </div>
+      <div class="grid3" id="ind-kpi-grid"></div>
+      <div class="card">
+        <div class="card-hd"><span>핵심 플레이어</span><button class="btn btn-sm" onclick="addPlayer()"><i class="ti ti-plus"></i> 추가</button></div>
+        <div id="ind-players"></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">공부 노트</div>
+        <div class="rte-wrap">
+          <div class="rte-toolbar">
+            <button class="rte-btn" onclick="rteCmd('bold')" title="굵게"><b>B</b></button>
+            <button class="rte-btn" onclick="rteCmd('italic')" title="기울기"><i>I</i></button>
+            <button class="rte-btn" onclick="rteCmd('underline')" title="밑줄"><u>U</u></button>
+            <div class="rte-sep"></div>
+            <button class="rte-btn" onclick="rteCmd('formatBlock','h3')" title="제목">H</button>
+            <button class="rte-btn" onclick="rteCmd('formatBlock','p')" title="본문">P</button>
+            <div class="rte-sep"></div>
+            <button class="rte-btn" onclick="rteCmd('insertUnorderedList')" title="목록">•</button>
+            <button class="rte-btn" onclick="rteCmd('insertOrderedList')" title="번호">1.</button>
+            <div class="rte-sep"></div>
+            <button class="rte-btn" onclick="saveIndNotes()" title="저장"><i class="ti ti-device-floppy"></i> 저장</button>
+          </div>
+          <div id="ind-notes-editor" contenteditable="true" data-placeholder="이 산업에 대해 공부한 내용을 자유롭게 기록해요..."></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd">연결된 Thesis</div>
+        <div id="ind-linked-thesis"></div>
+      </div>
+      <div class="card">
+        <div class="card-hd">관련 뉴스</div>
+        <div id="ind-news"><div style="color:var(--text3);font-size:13px;">뉴스를 불러오는 중...</div></div>
+      </div>
+      <div class="chat-box">
+        <div class="card-hd" style="padding:10px 14px;border-bottom:0.5px solid var(--border);">이 산업에 대해 Claude와 대화</div>
+        <div class="chat-top"><button class="btn btn-sm" onclick="clearChat('industry')"><i class="ti ti-refresh"></i> 초기화</button></div>
+        <div class="chat-msgs" id="industry-detail-msgs"></div>
+        <div class="chat-input"><input type="text" id="industry-detail-input" placeholder="이 산업에 대해 질문해보세요..."><button class="btn-primary" onclick="sendChatTo('industry','industry-detail')">전송</button></div>
       </div>
     </div>
 
@@ -376,6 +481,8 @@ body.dark .tag-logic{background:#0c2340;color:#85b7eb;}
     <div class="field"><label>현재가</label><input type="number" class="finput" id="h-curr" placeholder="예: 131.20"></div>
     <div class="field"><label>수량 (주)</label><input type="number" class="finput" id="h-qty" placeholder="예: 3"></div>
     <div class="field"><label>매수일</label><input type="text" class="finput" id="h-date" placeholder="예: 2026.05.07"></div>
+    <div class="field"><label>목표가 (선택)</label><input type="number" class="finput" id="h-target" placeholder="목표 주가"></div>
+    <div class="field"><label>섹터 (선택)</label><input type="text" class="finput" id="h-sector" placeholder="예: 반도체, AI, 바이오"></div>
     <div class="modal-acts"><button class="btn-primary" onclick="saveHolding()">저장</button><button class="btn" onclick="closeModal('modal-holding')">취소</button></div>
   </div>
 </div>
@@ -1176,9 +1283,417 @@ async function autoUpdatePrices() {
   if (changed) { serverSave("accounts",S.accounts); renderAll(); }
 }
 
+
+// ── RICH TEXT EDITOR ──────────────────────────────────────────
+function rteCmd(cmd, val) {
+  document.execCommand(cmd, false, val || null);
+}
+
+// ── SECTOR PIE CHART ──────────────────────────────────────────
+const SECTOR_COLORS = ["#378ADD","#1D9E75","#D85A30","#BA7517","#D4537E","#7F77DD","#639922","#888780"];
+
+function renderSectorChart() {
+  const el = document.getElementById("sector-chart");
+  if (!el) return;
+  const holdings = HH();
+  if (holdings.length === 0) { el.innerHTML = `<div style="color:var(--text3);font-size:13px;">종목을 추가하면 섹터 비중이 표시돼요.</div>`; return; }
+  
+  const sectors = {};
+  holdings.forEach(h => {
+    const sec = h.sector || h.market || "기타";
+    const val = h.currPrice * h.qty * (h.market === "미국" ? XR : 1);
+    sectors[sec] = (sectors[sec] || 0) + val;
+  });
+  
+  const total = Object.values(sectors).reduce((a,b) => a+b, 0);
+  const entries = Object.entries(sectors).sort((a,b) => b[1]-a[1]);
+  
+  // Draw SVG pie
+  const size = 100, cx = 50, cy = 50, r = 40;
+  let startAngle = -Math.PI/2;
+  let slices = "";
+  
+  entries.forEach(([name, val], i) => {
+    const pct = val / total;
+    const angle = pct * 2 * Math.PI;
+    const endAngle = startAngle + angle;
+    const x1 = cx + r * Math.cos(startAngle);
+    const y1 = cy + r * Math.sin(startAngle);
+    const x2 = cx + r * Math.cos(endAngle);
+    const y2 = cy + r * Math.sin(endAngle);
+    const large = angle > Math.PI ? 1 : 0;
+    const color = SECTOR_COLORS[i % SECTOR_COLORS.length];
+    slices += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="${color}" opacity="0.85"/>`;
+    startAngle = endAngle;
+  });
+  
+  const legend = entries.map(([name, val], i) => {
+    const pct = (val/total*100).toFixed(1);
+    const color = SECTOR_COLORS[i % SECTOR_COLORS.length];
+    return `<div class="pie-leg-item"><div class="pie-dot" style="background:${color};"></div><span>${name}</span><span style="margin-left:auto;font-weight:500;">${pct}%</span></div>`;
+  }).join("");
+  
+  el.innerHTML = `<div class="pie-wrap">
+    <svg width="100" height="100" viewBox="0 0 ${size} ${size}">${slices}</svg>
+    <div class="pie-legend" style="flex:1;">${legend}</div>
+  </div>`;
+}
+
+// ── RETURNS HISTORY CHART ─────────────────────────────────────
+function recordDailyReturn() {
+  const {eval_, ret} = calcAcc(ACC());
+  if (!S.returnHistory) S.returnHistory = [];
+  const today = TODAY_STR;
+  const existing = S.returnHistory.findIndex(r => r.date === today);
+  if (existing !== -1) S.returnHistory[existing].ret = parseFloat(ret);
+  else S.returnHistory.push({ date: today, ret: parseFloat(ret) });
+  if (S.returnHistory.length > 90) S.returnHistory = S.returnHistory.slice(-90);
+  serverSave("returnHistory", S.returnHistory);
+}
+
+function renderHistoryChart() {
+  const el = document.getElementById("history-chart");
+  if (!el) return;
+  const history = S.returnHistory || [];
+  if (history.length < 2) { el.innerHTML = `<div style="color:var(--text3);font-size:13px;">수익률 기록이 2개 이상 쌓이면 그래프가 표시돼요.</div>`; return; }
+  
+  const w = 280, h = 120, pt = {top:8, right:10, bottom:20, left:35};
+  const rets = history.map(r => r.ret);
+  const mn = Math.min(...rets, 0), mx = Math.max(...rets, 0);
+  const rng = mx - mn || 1;
+  const xs = i => pt.left + (i/(rets.length-1)) * (w-pt.left-pt.right);
+  const ys = v => pt.top + (1-(v-mn)/rng) * (h-pt.top-pt.bottom);
+  const zeroY = ys(0);
+  const pts = rets.map((v,i) => `${xs(i)},${ys(v)}`).join(" ");
+  const pos = rets[rets.length-1] >= 0;
+  const color = pos ? "var(--green)" : "var(--red)";
+  
+  const step = Math.max(1, Math.floor(history.length/4));
+  const xl = history.filter((_,i)=>i%step===0||i===history.length-1).map((r,i)=>{
+    const oi = Math.min(i*step, history.length-1);
+    return `<text x="${xs(oi)}" y="${h-4}" text-anchor="middle" font-size="9" fill="var(--text3)">${r.date.slice(5)}</text>`;
+  }).join("");
+  
+  el.innerHTML = `<svg class="hist-chart" viewBox="0 0 ${w} ${h}" style="width:100%;">
+    <line x1="${pt.left}" y1="${zeroY}" x2="${w-pt.right}" y2="${zeroY}" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3,3"/>
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/>
+    ${xl}
+    <text x="${pt.left-3}" y="${ys(mx)+4}" text-anchor="end" font-size="9" fill="var(--text3)">${mx.toFixed(1)}%</text>
+    <text x="${pt.left-3}" y="${ys(mn)+4}" text-anchor="end" font-size="9" fill="var(--text3)">${mn.toFixed(1)}%</text>
+  </svg>`;
+}
+
+// ── INDUSTRY DETAIL ────────────────────────────────────────────
+let currentIndIdx = -1;
+
+function openIndDetail(i) {
+  currentIndIdx = i;
+  const ind = S.industries[i];
+  document.getElementById("ind-detail-name").textContent = ind.name;
+  
+  // Nav
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById("sec-industry-detail").classList.add("active");
+  document.getElementById("page-title").textContent = ind.name;
+  
+  // KPIs
+  renderIndKPIs(ind);
+  // Players
+  renderIndPlayers(ind);
+  // Notes
+  const notesEl = document.getElementById("ind-notes-editor");
+  if (notesEl) notesEl.innerHTML = ind.richNotes || ind.notes || "";
+  // Linked thesis
+  renderIndLinkedThesis(ind);
+  // News
+  loadIndNews(ind.name);
+  // Chat msgs
+  const msgEl = document.getElementById("industry-detail-msgs");
+  if (msgEl) { msgEl.innerHTML = ""; addBubble(msgEl, "ai", `${ind.name} 산업에 대해 뭐든 물어봐. 구조, 플레이어, 최신 트렌드 다 분석해줄게.`); }
+}
+
+function goBackToIndustry() {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById("sec-industry").classList.add("active");
+  document.querySelectorAll(".nav-item").forEach(n => {
+    if (n.dataset.sec === "industry") n.classList.add("active");
+  });
+  document.getElementById("page-title").textContent = "산업 공부";
+  if (currentIndIdx !== -1) saveIndNotes();
+}
+
+function renderIndKPIs(ind) {
+  const el = document.getElementById("ind-kpi-grid");
+  if (!el) return;
+  const kpis = ind.kpis || [];
+  let html = kpis.map((k, i) => `<div class="kpi-card">
+    <div class="kpi-val">${k.value}</div>
+    <div class="kpi-lab">${k.label}</div>
+    <button class="btn btn-sm btn-danger" style="margin-top:6px;font-size:10px;" onclick="deleteKPI(${i})"><i class="ti ti-trash"></i></button>
+  </div>`).join("");
+  html += `<div class="kpi-card" style="cursor:pointer;border-style:dashed;display:flex;align-items:center;justify-content:center;" onclick="openModal('modal-kpi')"><i class="ti ti-plus" style="font-size:18px;color:var(--text3);"></i></div>`;
+  el.innerHTML = html;
+}
+
+function saveKPI() {
+  const label = document.getElementById("kpi-label").value.trim();
+  const value = document.getElementById("kpi-value").value.trim();
+  if (!label || !value) return;
+  const ind = S.industries[currentIndIdx];
+  if (!ind.kpis) ind.kpis = [];
+  ind.kpis.push({label, value});
+  serverSave("industries", S.industries);
+  document.getElementById("kpi-label").value = "";
+  document.getElementById("kpi-value").value = "";
+  closeModal("modal-kpi");
+  renderIndKPIs(ind);
+}
+
+function deleteKPI(i) {
+  S.industries[currentIndIdx].kpis.splice(i, 1);
+  serverSave("industries", S.industries);
+  renderIndKPIs(S.industries[currentIndIdx]);
+}
+
+function renderIndPlayers(ind) {
+  const el = document.getElementById("ind-players");
+  if (!el) return;
+  const players = ind.players || [];
+  if (players.length === 0) { el.innerHTML = `<div style="color:var(--text3);font-size:13px;">핵심 플레이어를 추가해보세요.</div>`; return; }
+  el.innerHTML = players.map((p,i) => `<div class="player-item">
+    <div>
+      <div style="font-weight:500;">${p.name}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:2px;">${p.why}</div>
+      ${p.stat?`<div style="font-size:11px;color:var(--text3);margin-top:1px;">${p.stat}</div>`:""}
+    </div>
+    <button class="btn btn-sm btn-danger" onclick="deletePlayer(${i})"><i class="ti ti-trash"></i></button>
+  </div>`).join("");
+}
+
+function addPlayer() { document.getElementById("player-name").value=""; document.getElementById("player-why").value=""; document.getElementById("player-stat").value=""; openModal("modal-player"); }
+
+function savePlayer() {
+  const name = document.getElementById("player-name").value.trim();
+  const why = document.getElementById("player-why").value.trim();
+  if (!name) return;
+  const ind = S.industries[currentIndIdx];
+  if (!ind.players) ind.players = [];
+  ind.players.push({name, why, stat: document.getElementById("player-stat").value.trim()});
+  serverSave("industries", S.industries);
+  document.getElementById("player-name").value=""; document.getElementById("player-why").value=""; document.getElementById("player-stat").value="";
+  closeModal("modal-player");
+  renderIndPlayers(ind);
+}
+
+function deletePlayer(i) {
+  S.industries[currentIndIdx].players.splice(i, 1);
+  serverSave("industries", S.industries);
+  renderIndPlayers(S.industries[currentIndIdx]);
+}
+
+function renderIndLinkedThesis(ind) {
+  const el = document.getElementById("ind-linked-thesis");
+  if (!el) return;
+  const linked = S.theses.filter(t => t.industry === ind.name);
+  if (linked.length === 0) { el.innerHTML=`<div style="color:var(--text3);font-size:13px;">연결된 Thesis가 없어요.</div>`; return; }
+  el.innerHTML = linked.map(t=>`<div style="padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px;"><span style="font-weight:500;">${t.ticker}</span> — ${t.name}</div>`).join("");
+}
+
+function saveIndNotes() {
+  if (currentIndIdx === -1) return;
+  const el = document.getElementById("ind-notes-editor");
+  if (!el) return;
+  S.industries[currentIndIdx].richNotes = el.innerHTML;
+  serverSave("industries", S.industries);
+}
+
+async function loadIndNews(industryName) {
+  const el = document.getElementById("ind-news");
+  if (!el) return;
+  el.innerHTML = `<div style="color:var(--text3);font-size:13px;">뉴스를 불러오는 중...</div>`;
+  try {
+    const r = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        section: "industry",
+        messages: [{role:"user", content:`${industryName} 산업의 최신 뉴스와 동향을 3-5개 찾아서 각각 제목, 날짜, 한줄 요약 형태로 정리해줘. JSON 형태로: [{title, date, summary}]`}]
+      })
+    });
+    const d = await r.json();
+    try {
+      const news = JSON.parse(d.text.replace(/```json|```/g,"").trim());
+      el.innerHTML = news.map(n=>`<div class="news-item">
+        <div class="news-title">${n.title}</div>
+        <div class="news-meta">${n.date} · ${n.summary}</div>
+      </div>`).join("");
+    } catch {
+      el.innerHTML = `<div style="font-size:13px;line-height:1.6;">${d.text}</div>`;
+    }
+  } catch {
+    el.innerHTML = `<div style="color:var(--text3);font-size:13px;">뉴스를 불러올 수 없어요.</div>`;
+  }
+}
+
+function sendChatTo(chatKey, domKey) {
+  const inp = document.getElementById(domKey+"-input");
+  const msgs = document.getElementById(domKey+"-msgs");
+  if (!inp || !msgs) return;
+  const text = inp.value.trim(); if (!text) return;
+  inp.value = "";
+  addBubble(msgs, "user", text);
+  if (!S.chats[chatKey]) S.chats[chatKey] = [];
+  S.chats[chatKey].push({role:"user", text});
+  const loading = document.createElement("div"); loading.className="msg-loading"; loading.textContent="Claude가 생각 중..."; msgs.appendChild(loading); msgs.scrollTop=msgs.scrollHeight;
+  const messages = S.chats[chatKey].map(m=>({role:m.role==="ai"?"assistant":"user",content:m.text}));
+  fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({section:chatKey,messages})})
+    .then(r=>r.json())
+    .then(d=>{
+      loading.remove();
+      const reply = d.text||"응답을 받지 못했어.";
+      addBubble(msgs,"ai",reply);
+      S.chats[chatKey].push({role:"ai",text:reply});
+      serverSave("chats",S.chats);
+    })
+    .catch(()=>{loading.textContent="오류가 발생했어.";});
+}
+
+// ── PORTFOLIO ENHANCEMENTS ────────────────────────────────────
+// Override openHoldingModal to add target/sector fields
+const _origOpenHoldingModal = openHoldingModal;
+function openHoldingModal(idx=-1) {
+  _origOpenHoldingModal(idx);
+  const h = idx===-1?{}:HH()[idx];
+  const targetEl = document.getElementById("h-target");
+  const sectorEl = document.getElementById("h-sector");
+  if (targetEl) targetEl.value = h.target||"";
+  if (sectorEl) sectorEl.value = h.sector||"";
+}
+
+const _origSaveHolding = saveHolding;
+function saveHolding() {
+  const ticker = document.getElementById("h-ticker").value.trim().toUpperCase();
+  if (!ticker) return;
+  const h = {
+    ticker, market:document.getElementById("h-market").value,
+    buyPrice:parseFloat(document.getElementById("h-buy").value)||0,
+    currPrice:parseFloat(document.getElementById("h-curr").value)||0,
+    qty:parseInt(document.getElementById("h-qty").value)||0,
+    date:document.getElementById("h-date").value||TODAY_STR,
+    target:parseFloat(document.getElementById("h-target")?.value)||0,
+    sector:document.getElementById("h-sector")?.value.trim()||"",
+  };
+  const idx = parseInt(document.getElementById("h-idx").value);
+  const acc = ACC();
+  if (!acc.holdings) acc.holdings = [];
+  if (idx===-1) acc.holdings.push(h); else acc.holdings[idx]=h;
+  serverSave("accounts",S.accounts);
+  ["h-ticker","h-buy","h-curr","h-qty","h-target","h-sector"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  document.getElementById("h-date").value=TODAY_STR;
+  document.getElementById("h-market").value="미국";
+  closeModal("modal-holding");
+  renderAll();
+}
+
+// Override renderPortfolio to add target price column and charts
+const _origRenderPortfolio = renderPortfolio;
+function renderPortfolio() {
+  _origRenderPortfolio();
+  renderSectorChart();
+  renderHistoryChart();
+  // Re-render table with target price
+  const tbody = document.getElementById("holdings-tbody");
+  if (!tbody) return;
+  const holdings = HH();
+  if (holdings.length === 0) return;
+  tbody.innerHTML = holdings.map((h,i) => {
+    const r = ((h.currPrice-h.buyPrice)/h.buyPrice*100).toFixed(1);
+    const rp = parseFloat(r)>=0;
+    const sym = h.market==="미국"?"$":"₩";
+    let targetHtml = "—";
+    if (h.target && h.target > 0) {
+      const toTarget = ((h.target-h.currPrice)/h.currPrice*100).toFixed(1);
+      const tp = parseFloat(toTarget)>=0;
+      targetHtml = `<span style="font-size:11px;">${sym}${Number(h.target).toLocaleString()}</span><br><span style="font-size:10px;" class="${tp?"pos":"neg"}">${tp?"+":""}${toTarget}%</span>`;
+    }
+    return `<tr>
+      <td style="font-weight:500;">${h.ticker}</td>
+      <td><span class="badge-${h.market==="미국"?"us":"kr"}">${h.market}</span></td>
+      <td class="muted" style="font-size:12px;">${sym}${Number(h.buyPrice).toLocaleString()}</td>
+      <td style="font-size:12px;">${sym}${Number(h.currPrice).toLocaleString()}</td>
+      <td style="font-size:12px;">${targetHtml}</td>
+      <td style="font-size:12px;">${h.qty}주</td>
+      <td class="${rp?"pos":"neg"}" style="font-weight:500;">${rp?"+":""}${r}%</td>
+      <td><div style="display:flex;gap:3px;">
+        <button class="btn btn-sm" onclick="openHoldingModal(${i})"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-sm btn-sell" onclick="openSellModal(${i})">매도</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteHolding(${i})"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+
+// Override saveDailyMemo for contenteditable
+function saveDailyMemo() {
+  const el = document.getElementById("daily-memo-input");
+  if (!el) return;
+  const text = el.innerText.trim();
+  const html = el.innerHTML;
+  if (!text) return;
+  S.dailyMemos[TODAY_STR] = {text, html, date:TODAY_STR};
+  serverSave("dailyMemos", S.dailyMemos);
+  renderMemoHistory(); renderWeeklySummary();
+  recordDailyReturn();
+  alert("저장됐어!");
+}
+
+// Override loadMemoUI for contenteditable
+function loadMemoUI() {
+  const input = document.getElementById("daily-memo-input");
+  if (input) input.innerHTML = S.dailyMemos[TODAY_STR]?.html || "";
+  const wr = document.getElementById("weekly-review-input");
+  if (wr) { wr.value = S.weeklyReview||""; wr.oninput = ()=>{ S.weeklyReview=wr.value; serverSave("weeklyReview",S.weeklyReview); }; }
+  renderMemoHistory();
+  renderWeeklySummary();
+}
+
+// Record return on load
+window.addEventListener("load", () => { setTimeout(recordDailyReturn, 3000); });
+
 // ── MODAL HELPERS ──────────────────────────────────────────────
 function openModal(id) { document.getElementById(id).style.display="flex"; }
 function closeModal(id) { document.getElementById(id).style.display="none"; }
 </script>
+
+<!-- News Modal -->
+<div class="overlay" id="modal-news" style="display:none;" onclick="if(event.target===this)closeModal('modal-news')">
+  <div class="modal modal-wide">
+    <div class="modal-hd"><span class="modal-title">관련 뉴스 — <span id="news-modal-title"></span></span><button class="modal-close" onclick="closeModal('modal-news')"><i class="ti ti-x"></i></button></div>
+    <div id="news-modal-content"></div>
+  </div>
+</div>
+
+<!-- Add Player Modal -->
+<div class="overlay" id="modal-player" style="display:none;" onclick="if(event.target===this)closeModal('modal-player')">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-title">핵심 플레이어 추가</span><button class="modal-close" onclick="closeModal('modal-player')"><i class="ti ti-x"></i></button></div>
+    <div class="field"><label>기업명</label><input type="text" class="finput" id="player-name" placeholder="예: NVIDIA"></div>
+    <div class="field"><label>왜 강한가</label><textarea class="ftextarea" id="player-why" placeholder="이 기업의 경쟁력은..."></textarea></div>
+    <div class="field"><label>시장 점유율 / 매출 (선택)</label><input type="text" class="finput" id="player-stat" placeholder="예: GPU 시장 80% 점유"></div>
+    <div class="modal-acts"><button class="btn-primary" onclick="savePlayer()">추가</button><button class="btn" onclick="closeModal('modal-player')">취소</button></div>
+  </div>
+</div>
+
+<!-- Add KPI Modal -->
+<div class="overlay" id="modal-kpi" style="display:none;" onclick="if(event.target===this)closeModal('modal-kpi')">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-title">핵심 지표 추가</span><button class="modal-close" onclick="closeModal('modal-kpi')"><i class="ti ti-x"></i></button></div>
+    <div class="field"><label>지표명</label><input type="text" class="finput" id="kpi-label" placeholder="예: 시장 규모"></div>
+    <div class="field"><label>값</label><input type="text" class="finput" id="kpi-value" placeholder="예: $500B"></div>
+    <div class="modal-acts"><button class="btn-primary" onclick="saveKPI()">추가</button><button class="btn" onclick="closeModal('modal-kpi')">취소</button></div>
+  </div>
+</div>
+
 </body>
 </html>
