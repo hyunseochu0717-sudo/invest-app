@@ -844,15 +844,13 @@ function renderDailyAccountsSummary() {
 function renderSidebar() {
   renderDailyAccountsSummary();
   const { totalEval, profit, retPct } = calcPortfolio();
-  document.getElementById("sb-total").textContent = "₩" + Math.round(totalEval).toLocaleString();
   const sign = profit >= 0 ? "+" : "";
-  document.getElementById("sb-ret").textContent = `${sign}₩${Math.round(Math.abs(profit)).toLocaleString()} (${sign}${retPct}%)`;
-  document.getElementById("sb-ret").style.color = profit >= 0 ? "var(--green)" : "var(--red)";
-  document.getElementById("d-eval").textContent = "₩" + Math.round(totalEval).toLocaleString();
-  document.getElementById("d-ret").textContent = `${sign}${retPct}%`;
-  document.getElementById("d-ret").style.color = profit >= 0 ? "var(--green)" : "var(--red)";
-  document.getElementById("w-ret").textContent = `${sign}${retPct}%`;
-  document.getElementById("w-ret").style.color = profit >= 0 ? "var(--green)" : "var(--red)";
+  const sbTotal = document.getElementById("sb-total");
+  const sbRet = document.getElementById("sb-ret");
+  const wRet = document.getElementById("w-ret");
+  if (sbTotal) sbTotal.textContent = "₩" + Math.round(totalEval).toLocaleString();
+  if (sbRet) { sbRet.textContent = `${sign}₩${Math.round(Math.abs(profit)).toLocaleString()} (${sign}${retPct}%)`; sbRet.style.color = profit >= 0 ? "var(--green)" : "var(--red)"; }
+  if (wRet) { wRet.textContent = `${sign}${retPct}%`; wRet.style.color = profit >= 0 ? "var(--green)" : "var(--red)"; }
 }
 
 function renderPortfolio() {
