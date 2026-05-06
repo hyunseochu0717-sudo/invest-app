@@ -90,14 +90,38 @@ function fetchNews(query, pageSize = 5) {
   });
 }
 
+// Korean industry name to English
+const KR_TO_EN = {
+  "반도체": "semiconductor chip",
+  "AI": "artificial intelligence AI",
+  "인공지능": "artificial intelligence AI",
+  "2차전지": "battery EV lithium",
+  "전기차": "electric vehicle EV",
+  "바이오": "biotech pharmaceutical",
+  "클라우드": "cloud computing",
+  "플랫폼": "tech platform",
+  "금융": "finance banking",
+  "대형주": "large cap Korea stock",
+  "IT": "technology software",
+  "에너지": "energy renewable",
+  "게임": "gaming esports",
+};
+
+function translateQuery(q) {
+  for (const [kr, en] of Object.entries(KR_TO_EN)) {
+    if (q.includes(kr)) return en;
+  }
+  return q;
+}
+
 // Extract search query from messages
 function extractQuery(messages, section) {
   const lastMsg = messages[messages.length - 1]?.content || "";
-  const keywords = lastMsg.replace(/[^\w\s가-힣]/g, " ").trim().slice(0, 100);
-  if (section === "daily") return `stock market ${keywords} today`;
-  if (section === "weekly") return `stock market weekly ${keywords}`;
-  if (section === "industry") return `${keywords} industry market`;
-  return `${keywords} stock`;
+  const keywords = translateQuery(lastMsg.replace(/[^\w\s가-힣]/g, " ").trim().slice(0, 80));
+  if (section === "daily") return `${keywords} stock market today`;
+  if (section === "weekly") return `${keywords} stock market this week`;
+  if (section === "industry") return `${keywords} industry stocks 2025`;
+  return `${keywords} stock investing`;
 }
 
 // Claude 대화 with news context + streaming
@@ -164,7 +188,8 @@ app.get("/api/news", async (req, res) => {
   try {
     const { q, size } = req.query;
     if (!q) return res.status(400).json({ error: "q required" });
-    const articles = await fetchNews(q, parseInt(size) || 5);
+    const translatedQ = translateQuery(q) + " stock investing 2025";
+    const articles = await fetchNews(translatedQ, parseInt(size) || 5);
     res.json({ articles });
   } catch (e) {
     res.status(500).json({ error: e.message });
