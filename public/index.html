@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>투자 노트 — 리오</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg0:#ffffff;--bg1:#f5f5f5;--bg2:#ebebeb;
+  --border:#e0e0e0;--border2:#d0d0d0;
+  --text1:#111111;--text2:#555555;--text3:#999999;
+  --green:#16a34a;--red:#dc2626;--amber:#d97706;
+  --blue-bg:#e6f1fb;--blue-text:#0c447c;
+  --green-bg:#eaf3de;--green-text:#3b6d11;
+  --card-radius:10px;--sm-radius:6px;
+  --sidebar:210px;
+}
+body.dark{
+  --bg0:#0a0a0a;--bg1:#111111;--bg2:#1a1a1a;
+  --border:#222222;--border2:#2a2a2a;
+  --text1:#f0f0f0;--text2:#888888;--text3:#444444;
+  --green:#4ade80;--red:#f87171;--amber:#fbbf24;
+  --blue-bg:#0c2340;--blue-text:#85b7eb;
+  --green-bg:#0a1f0a;--green-text:#97c459;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg1);color:var(--text1);height:100vh;display:flex;overflow:hidden;}
+
+/* SIDEBAR */
+#sidebar{width:var(--sidebar);background:var(--bg0);border-right:0.5px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;height:100vh;}
+.sb-header{padding:18px 16px 12px;border-bottom:0.5px solid var(--border);}
+.sb-header h1{font-size:15px;font-weight:600;color:var(--text1);}
+.sb-header p{font-size:11px;color:var(--text2);margin-top:2px;}
+.sb-asset{margin:10px;background:var(--bg1);border-radius:var(--card-radius);padding:12px 14px;border:0.5px solid var(--border);}
+.sb-asset .label{font-size:11px;color:var(--text2);}
+.sb-asset .value{font-size:19px;font-weight:600;color:var(--text1);margin-top:3px;}
+.sb-asset .ret{font-size:12px;color:var(--green);margin-top:2px;}
+nav{flex:1;overflow-y:auto;padding:4px 0;}
+.nav-group{padding:6px 16px 2px;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.06em;margin-top:6px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:13px;color:var(--text2);border-left:2px solid transparent;cursor:pointer;transition:all .1s;}
+.nav-item:hover{background:var(--bg1);color:var(--text1);}
+.nav-item.active{background:var(--bg1);color:var(--text1);border-left:2px solid var(--text1);font-weight:500;}
+.nav-item i{font-size:15px;}
+.sb-footer{padding:12px 16px;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.theme-btn{background:var(--bg1);border:0.5px solid var(--border);border-radius:var(--sm-radius);padding:6px 10px;font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:5px;}
+.theme-btn:hover{color:var(--text1);}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{padding:13px 22px;border-bottom:0.5px solid var(--border);background:var(--bg0);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.topbar h2{font-size:15px;font-weight:600;color:var(--text1);}
+.topbar .date{font-size:12px;color:var(--text2);}
+.content{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px;}
+
+/* SECTIONS */
+.section{display:none;}
+.section.active{display:flex;flex-direction:column;gap:14px;}
+
+/* CARDS */
+.card{background:var(--bg0);border:0.5px solid var(--border);border-radius:var(--card-radius);padding:16px;}
+.card-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:12px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+
+/* MARKET ROWS */
+.mrow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px;}
+.mrow:last-child{border-bottom:none;}
+.mrow .mname{color:var(--text2);}
+.mrow .mval{font-weight:500;}
+
+/* METRIC CARDS */
+.metric{background:var(--bg1);border-radius:var(--sm-radius);padding:12px;}
+.metric .mlabel{font-size:11px;color:var(--text2);}
+.metric .mnum{font-size:18px;font-weight:600;color:var(--text1);margin-top:4px;}
+
+/* TABLE */
+.table-wrap{background:var(--bg0);border:0.5px solid var(--border);border-radius:var(--card-radius);overflow:hidden;}
+.table-header{padding:12px 16px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.table-header span{font-size:13px;font-weight:500;}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
+th{padding:9px 14px;text-align:left;font-size:11px;font-weight:500;color:var(--text2);border-bottom:0.5px solid var(--border);}
+td{padding:10px 14px;border-bottom:0.5px solid var(--border);color:var(--text1);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg1);}
+
+/* BADGES */
+.badge-us{background:var(--blue-bg);color:var(--blue-text);font-size:11px;padding:2px 7px;border-radius:100px;}
+.badge-kr{background:var(--green-bg);color:var(--green-text);font-size:11px;padding:2px 7px;border-radius:100px;}
+.badge-fomo{background:#fee2e2;color:#991b1b;font-size:11px;padding:2px 8px;border-radius:100px;}
+.badge-rush{background:#fef3c7;color:#92400e;font-size:11px;padding:2px 8px;border-radius:100px;}
+.badge-logic{background:#dbeafe;color:#1e40af;font-size:11px;padding:2px 8px;border-radius:100px;}
+body.dark .badge-fomo{background:#3a1a1a;color:#f87171;}
+body.dark .badge-rush{background:#2a1f08;color:#fbbf24;}
+body.dark .badge-logic{background:#0c2340;color:#85b7eb;}
+
+/* BUTTONS */
+.btn{background:var(--bg1);border:0.5px solid var(--border);border-radius:var(--sm-radius);padding:5px 10px;font-size:12px;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.btn:hover{color:var(--text1);border-color:var(--border2);}
+.btn-primary{background:var(--text1);color:var(--bg0);border:none;border-radius:var(--sm-radius);padding:7px 16px;font-size:13px;cursor:pointer;font-weight:500;}
+.btn-primary:hover{opacity:.88;}
+.btn-sm{padding:3px 8px;font-size:11px;}
+.btn-danger{color:var(--red);border-color:var(--red);opacity:.7;}
+.btn-danger:hover{opacity:1;background:transparent;}
+.btn-sell{color:var(--amber);border-color:var(--amber);opacity:.8;}
+.btn-sell:hover{opacity:1;background:transparent;}
+.btn-full{width:100%;justify-content:center;padding:10px;}
+
+/* CHAT */
+.chat-box{background:var(--bg0);border:0.5px solid var(--border);border-radius:var(--card-radius);overflow:hidden;}
+.chat-msgs{padding:14px;min-height:140px;max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+.msg-ai{align-self:flex-start;max-width:85%;}
+.msg-ai .ai-label{font-size:11px;color:var(--text3);margin-bottom:3px;}
+.msg-ai .ai-text{font-size:13px;color:var(--text1);line-height:1.55;}
+.msg-user{align-self:flex-end;background:var(--bg1);border:0.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text1);max-width:85%;}
+.msg-loading{align-self:flex-start;font-size:13px;color:var(--text3);font-style:italic;}
+.chat-input{border-top:0.5px solid var(--border);padding:10px 14px;display:flex;gap:8px;align-items:center;}
+.chat-input input{flex:1;border:none;background:transparent;font-size:13px;color:var(--text1);outline:none;}
+.chat-input input::placeholder{color:var(--text3);}
+
+/* TEXTAREA / INPUT */
+textarea,input[type=text],input[type=number],select{font-family:inherit;}
+.field-label{font-size:12px;color:var(--text2);margin-bottom:4px;}
+.field-input{width:100%;font-size:13px;padding:8px 10px;border-radius:var(--sm-radius);border:0.5px solid var(--border);background:var(--bg1);color:var(--text1);outline:none;}
+.field-input:focus{border-color:var(--border2);}
+.field-textarea{width:100%;font-size:13px;padding:10px;border-radius:var(--sm-radius);border:0.5px solid var(--border);background:var(--bg1);color:var(--text1);outline:none;resize:none;min-height:80px;line-height:1.6;}
+.field-textarea:focus{border-color:var(--border2);}
+.naked-textarea{width:100%;border:none;background:transparent;font-size:13px;color:var(--text1);resize:none;outline:none;min-height:70px;line-height:1.6;font-family:inherit;}
+.naked-textarea::placeholder{color:var(--text3);}
+
+/* ACTION BUTTONS ROW */
+.act-row{display:flex;gap:5px;}
+
+/* PRINCIPLE / MISTAKE ITEMS */
+.list-item{background:var(--bg0);border:0.5px solid var(--border);border-radius:var(--card-radius);padding:14px 16px;}
+.list-item:hover{border-color:var(--border2);}
+.item-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.item-text{font-size:13px;color:var(--text1);line-height:1.5;}
+.item-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.item-desc{font-size:12px;color:var(--text2);margin-top:6px;line-height:1.4;}
+.item-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;}
+
+/* THESIS / INDUSTRY CARDS */
+.tile{background:var(--bg0);border:0.5px solid var(--border);border-radius:var(--card-radius);padding:16px;cursor:pointer;}
+.tile:hover{border-color:var(--border2);}
+.tile-add{border-style:dashed;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text3);font-size:13px;min-height:90px;}
+.tile-add:hover{border-color:var(--border2);color:var(--text2);}
+.tile-ticker{font-size:16px;font-weight:600;color:var(--text1);}
+.tile-name{font-size:12px;color:var(--text2);margin-top:2px;}
+.tile-ret{font-size:13px;margin-top:8px;}
+.tile-tag{font-size:11px;color:var(--text3);margin-top:5px;}
+.tile-icon{font-size:22px;color:var(--text2);margin-bottom:8px;}
+.tile-industry-name{font-size:14px;font-weight:500;color:var(--text1);}
+.tile-industry-sub{font-size:11px;color:var(--text2);margin-top:3px;}
+
+/* PATTERN BOX */
+.pattern-box{background:var(--bg1);border-radius:var(--sm-radius);padding:14px;margin-bottom:4px;}
+.pattern-label{font-size:11px;color:var(--text2);margin-bottom:6px;}
+.pattern-text{font-size:13px;color:var(--text1);line-height:1.5;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;}
+.modal{background:var(--bg0);border-radius:var(--card-radius);border:0.5px solid var(--border);padding:22px;width:420px;max-height:80vh;overflow-y:auto;}
+.modal-wide{width:560px;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.modal-title{font-size:15px;font-weight:600;color:var(--text1);}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--text2);font-size:20px;line-height:1;}
+.modal-close:hover{color:var(--text1);}
+.modal-field{margin-bottom:12px;}
+.modal-actions{display:flex;gap:8px;margin-top:16px;}
+.modal-actions .btn-primary{flex:1;}
+
+/* MARKET FULL */
+.mfull-cat{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.06em;margin:14px 0 6px;}
+.mfull-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:13px;}
+.mfull-row:last-child{border-bottom:none;}
+
+/* SELL RECORD */
+.sell-item{background:var(--bg0);border:0.5px solid var(--border);border-radius:var(--card-radius);padding:14px 16px;}
+.sell-ticker{font-size:14px;font-weight:600;color:var(--text1);}
+.sell-detail{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5;}
+
+/* COLORS */
+.pos{color:var(--green);}
+.neg{color:var(--red);}
+.muted{color:var(--text2);}
+
+/* WEEKLY SUMMARY ROWS */
+.week-row{padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px;color:var(--text2);line-height:1.5;}
+.week-row:last-child{border-bottom:none;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sb-header">
+    <h1>투자 노트</h1>
+    <p>리오의 공간</p>
+  </div>
+  <div class="sb-asset">
+    <div class="label">총 자산</div>
+    <div class="value" id="sb-total">₩0</div>
+    <div class="ret" id="sb-ret">+₩0 (0%)</div>
+  </div>
+  <nav>
+    <div class="nav-group">기록</div>
+    <div class="nav-item active" data-sec="daily"><i class="ti ti-calendar"></i> 일일 기록</div>
+    <div class="nav-item" data-sec="weekly"><i class="ti ti-calendar-week"></i> 주간 정리</div>
+    <div class="nav-group">투자</div>
+    <div class="nav-item" data-sec="portfolio"><i class="ti ti-chart-bar"></i> 포트폴리오</div>
+    <div class="nav-item" data-sec="sells"><i class="ti ti-coins"></i> 매도 기록</div>
+    <div class="nav-item" data-sec="thesis"><i class="ti ti-file-text"></i> 투자 Thesis</div>
+    <div class="nav-group">공부</div>
+    <div class="nav-item" data-sec="industry"><i class="ti ti-building-factory"></i> 산업 공부</div>
+    <div class="nav-group">성장</div>
+    <div class="nav-item" data-sec="principles"><i class="ti ti-list-check"></i> 내 투자 원칙</div>
+    <div class="nav-item" data-sec="mistakes"><i class="ti ti-refresh-alert"></i> 틀린 판단 복기</div>
+  </nav>
+  <div class="sb-footer" style="flex-direction:column;gap:8px;align-items:stretch;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:11px;color:var(--text3);">리오</span>
+      <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-moon"></i> <span id="theme-label">다크</span></button>
+    </div>
+
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <h2 id="page-title">일일 기록</h2>
+    <span class="date" id="today-date"></span>
+  </div>
+  <div class="content">
+
+    <!-- 일일 기록 -->
+    <div class="section active" id="sec-daily">
+      <div class="grid2">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;" class="card-title" style="margin-bottom:0;">
+            <span>오늘의 시장</span>
+            <button class="btn btn-sm" onclick="openMarketModal()">전체 보기 →</button>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="mrow"><span class="mname">S&P 500</span><span class="mval"><span class="muted" style="margin-right:8px;font-size:12px;">5,842</span><span class="pos">+0.82%</span></span></div>
+            <div class="mrow"><span class="mname">나스닥</span><span class="mval"><span class="muted" style="margin-right:8px;font-size:12px;">18,921</span><span class="pos">+1.14%</span></span></div>
+            <div class="mrow"><span class="mname">코스피</span><span class="mval"><span class="muted" style="margin-right:8px;font-size:12px;">2,631</span><span class="neg">-0.31%</span></span></div>
+            <div class="mrow"><span class="mname">USD/KRW</span><span class="mval">1,384</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">내 포트폴리오 오늘</div>
+          <div class="mrow"><span class="mname">평가금액</span><span class="mval" id="d-eval">₩0</span></div>
+          <div class="mrow"><span class="mname">오늘 수익</span><span class="mval pos">—</span></div>
+          <div class="mrow"><span class="mname">총 수익률</span><span class="mval" id="d-ret">—</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;" class="card-title" style="margin-bottom:0;">
+          <span>오늘의 메모</span>
+          <button class="btn btn-sm" onclick="saveDailyMemo()"><i class="ti ti-device-floppy"></i> 저장</button>
+        </div>
+        <textarea class="naked-textarea" id="daily-memo" placeholder="오늘 시장 보면서 느낀 것, 특이사항을 자유롭게 적어요..." style="margin-top:10px;"></textarea>
+      </div>
+      <div class="card" id="memo-history-card">
+        <div class="card-title">이전 메모 기록</div>
+        <div id="memo-history-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+      <div class="chat-box">
+        <div style="display:flex;justify-content:flex-end;padding:8px 14px 0;border-bottom:0.5px solid var(--border);">
+        <button class="btn btn-sm" onclick="clearChat('daily')"><i class="ti ti-refresh"></i> 대화 초기화</button>
+      </div>
+      <div class="chat-msgs" id="daily-chat-msgs"></div>
+        <div class="chat-input">
+          <input type="text" id="daily-chat-input" placeholder="오늘 시장에 대해 Claude와 대화해보세요...">
+          <button class="btn-primary" onclick="sendChat('daily')">전송</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 주간 정리 -->
+    <div class="section" id="sec-weekly">
+      <div class="grid3">
+        <div class="metric"><div class="mlabel">이번 주 S&P 500</div><div class="mnum pos">+2.1%</div></div>
+        <div class="metric"><div class="mlabel">이번 주 코스피</div><div class="mnum neg">-0.8%</div></div>
+        <div class="metric"><div class="mlabel">내 포트폴리오</div><div class="mnum pos" id="w-ret">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">이번 주 일일 기록</div>
+        <div id="weekly-daily-summary" style="display:flex;flex-direction:column;gap:8px;"><div style="color:var(--text3);font-size:13px;">이번 주 일일 기록이 여기에 모여요.</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">이번 주 판단 복기</div>
+        <textarea class="naked-textarea" id="weekly-review" placeholder="이번 주 잘한 판단, 틀린 판단, FOMO가 있었는지 돌아보세요..."></textarea>
+      </div>
+      <div class="chat-box">
+        <div style="display:flex;justify-content:flex-end;padding:8px 14px 0;border-bottom:0.5px solid var(--border);">
+        <button class="btn btn-sm" onclick="clearChat('weekly')"><i class="ti ti-refresh"></i> 대화 초기화</button>
+      </div>
+      <div class="chat-msgs" id="weekly-chat-msgs"></div>
+        <div class="chat-input">
+          <input type="text" id="weekly-chat-input" placeholder="이번 주 전체를 놓고 Claude와 깊게 얘기해보세요...">
+          <button class="btn-primary" onclick="sendChat('weekly')">전송</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 포트폴리오 -->
+    <div class="section" id="sec-portfolio">
+      <div class="grid4" id="portfolio-metrics"></div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <span>보유 종목</span>
+          <button class="btn" onclick="openHoldingModal()"><i class="ti ti-plus"></i> 종목 추가</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th style="width:75px;">종목</th>
+            <th style="width:58px;">시장</th>
+            <th>매수가</th><th>현재가</th>
+            <th style="width:50px;">수량</th>
+            <th style="width:65px;">수익률</th>
+            <th style="width:110px;"></th>
+          </tr></thead>
+          <tbody id="holdings-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 매도 기록 -->
+    <div class="section" id="sec-sells">
+      <div id="sells-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+
+    <!-- 투자 Thesis -->
+    <div class="section" id="sec-thesis">
+      <div class="grid2" id="thesis-grid"></div>
+      <div class="chat-box">
+        <div style="display:flex;justify-content:flex-end;padding:8px 14px 0;border-bottom:0.5px solid var(--border);">
+        <button class="btn btn-sm" onclick="clearChat('thesis')"><i class="ti ti-refresh"></i> 대화 초기화</button>
+      </div>
+      <div class="chat-msgs" id="thesis-chat-msgs"></div>
+        <div class="chat-input">
+          <input type="text" id="thesis-chat-input" placeholder="Thesis 작성하고 싶은 종목에 대해 얘기해보세요...">
+          <button class="btn-primary" onclick="sendChat('thesis')">전송</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 산업 공부 -->
+    <div class="section" id="sec-industry">
+      <div class="grid3" id="industry-grid"></div>
+      <div class="chat-box">
+        <div style="display:flex;justify-content:flex-end;padding:8px 14px 0;border-bottom:0.5px solid var(--border);">
+        <button class="btn btn-sm" onclick="clearChat('industry')"><i class="ti ti-refresh"></i> 대화 초기화</button>
+      </div>
+      <div class="chat-msgs" id="industry-chat-msgs"></div>
+        <div class="chat-input">
+          <input type="text" id="industry-chat-input" placeholder="공부하고 싶은 산업에 대해 질문해보세요...">
+          <button class="btn-primary" onclick="sendChat('industry')">전송</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 내 투자 원칙 -->
+    <div class="section" id="sec-principles">
+      <div id="principles-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <button class="btn btn-full" onclick="openPrincipleModal()"><i class="ti ti-plus"></i> 새 원칙 추가</button>
+    </div>
+
+    <!-- 틀린 판단 복기 -->
+    <div class="section" id="sec-mistakes">
+      <div class="pattern-box">
+        <div class="pattern-label">Claude의 패턴 분석</div>
+        <div class="pattern-text" id="pattern-text">복기가 쌓이면 패턴을 분석해줄게.</div>
+      </div>
+      <div id="mistakes-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <button class="btn btn-full" onclick="openMistakeModal()"><i class="ti ti-plus"></i> 새 복기 추가</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+<!-- Market Full -->
+<div class="modal-overlay" id="modal-market" style="display:none;" onclick="if(event.target===this)closeModal('modal-market')">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <span class="modal-title">전체 시장</span>
+      <button class="modal-close" onclick="closeModal('modal-market')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="market-full-content"></div>
+    <div style="margin-top:16px;">
+      <div class="field-label">관심 종목 추가</div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <input type="text" class="field-input" id="watch-input" placeholder="예: TSLA, 035420" style="flex:1;">
+        <button class="btn-primary" onclick="addWatchlist()">추가</button>
+      </div>
+      <div id="watchlist-display" style="margin-top:12px;display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Holding Add/Edit -->
+<div class="modal-overlay" id="modal-holding" style="display:none;" onclick="if(event.target===this)closeModal('modal-holding')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="holding-modal-title">종목 추가</span>
+      <button class="modal-close" onclick="closeModal('modal-holding')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-field"><div class="field-label">종목명</div><input type="text" class="field-input" id="h-ticker" placeholder="예: NVDA, 005930"></div>
+    <div class="modal-field"><div class="field-label">시장</div>
+      <select class="field-input" id="h-market"><option value="미국">미국</option><option value="한국">한국</option></select>
+    </div>
+    <div class="modal-field"><div class="field-label">매수가</div><input type="number" class="field-input" id="h-buy" placeholder="예: 118.40"></div>
+    <div class="modal-field"><div class="field-label">현재가</div><input type="number" class="field-input" id="h-curr" placeholder="예: 131.20"></div>
+    <div class="modal-field"><div class="field-label">수량 (주)</div><input type="number" class="field-input" id="h-qty" placeholder="예: 3"></div>
+    <div class="modal-field"><div class="field-label">매수일</div><input type="text" class="field-input" id="h-date" placeholder="예: 2025.03.15"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="holding-save-btn" onclick="saveHolding()">저장</button>
+      <button class="btn" onclick="closeModal('modal-holding')">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sell Modal -->
+<div class="modal-overlay" id="modal-sell" style="display:none;" onclick="if(event.target===this)closeModal('modal-sell')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="sell-modal-title">매도 처리</span>
+      <button class="modal-close" onclick="closeModal('modal-sell')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-field"><div class="field-label">매도가</div><input type="number" class="field-input" id="sell-price" placeholder="매도한 가격"></div>
+    <div class="modal-field"><div class="field-label">매도일</div><input type="text" class="field-input" id="sell-date" placeholder="예: 2026.05.06"></div>
+    <div class="modal-field"><div class="field-label">매도 이유 (선택)</div><textarea class="field-textarea" id="sell-reason" placeholder="왜 팔았는지 간단히 기록해요..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="confirmSell()">매도 처리</button>
+      <button class="btn" onclick="closeModal('modal-sell')">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- Thesis Add/Edit -->
+<div class="modal-overlay" id="modal-thesis" style="display:none;" onclick="if(event.target===this)closeModal('modal-thesis')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="thesis-modal-title">Thesis 작성</span>
+      <button class="modal-close" onclick="closeModal('modal-thesis')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-field"><div class="field-label">종목명</div><input type="text" class="field-input" id="t-ticker" placeholder="예: NVDA"></div>
+    <div class="modal-field"><div class="field-label">기업명</div><input type="text" class="field-input" id="t-name" placeholder="예: NVIDIA Corporation"></div>
+    <div class="modal-field"><div class="field-label">연결 산업</div><input type="text" class="field-input" id="t-industry" placeholder="예: AI 인프라"></div>
+    <div class="modal-field"><div class="field-label">목표 기간</div><input type="text" class="field-input" id="t-period" placeholder="예: 3년"></div>
+    <div class="modal-field"><div class="field-label">왜 사는가</div><textarea class="field-textarea" id="t-why" placeholder="투자 이유를 적어요..."></textarea></div>
+    <div class="modal-field"><div class="field-label">리스크</div><textarea class="field-textarea" id="t-risk" placeholder="주요 리스크를 적어요..."></textarea></div>
+    <div class="modal-field"><div class="field-label">내가 틀릴 수 있는 이유</div><textarea class="field-textarea" id="t-wrong" placeholder="반론을 적어요..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveThesis()">저장</button>
+      <button class="btn" onclick="closeModal('modal-thesis')">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- Thesis Detail -->
+<div class="modal-overlay" id="modal-thesis-detail" style="display:none;" onclick="if(event.target===this)closeModal('modal-thesis-detail')">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <span class="modal-title" id="td-ticker"></span>
+      <button class="modal-close" onclick="closeModal('modal-thesis-detail')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="td-content"></div>
+  </div>
+</div>
+
+<!-- Industry Add/Edit -->
+<div class="modal-overlay" id="modal-industry" style="display:none;" onclick="if(event.target===this)closeModal('modal-industry')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="industry-modal-title">산업 추가</span>
+      <button class="modal-close" onclick="closeModal('modal-industry')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-field"><div class="field-label">산업명</div><input type="text" class="field-input" id="ind-name" placeholder="예: 반도체"></div>
+    <div class="modal-field"><div class="field-label">아이콘 (Tabler icon 이름)</div><input type="text" class="field-input" id="ind-icon" placeholder="예: ti-cpu"></div>
+    <div class="modal-field"><div class="field-label">공부 노트</div><textarea class="field-textarea" id="ind-notes" placeholder="이 산업이 왜 돈이 되는지, 핵심 플레이어, 트렌드..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveIndustry()">저장</button>
+      <button class="btn" onclick="closeModal('modal-industry')">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- Industry Detail -->
+<div class="modal-overlay" id="modal-industry-detail" style="display:none;" onclick="if(event.target===this)closeModal('modal-industry-detail')">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <span class="modal-title" id="id-name"></span>
+      <button class="modal-close" onclick="closeModal('modal-industry-detail')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="id-content"></div>
+  </div>
+</div>
+
+<!-- Principle Add/Edit -->
+<div class="modal-overlay" id="modal-principle" style="display:none;" onclick="if(event.target===this)closeModal('modal-principle')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="principle-modal-title">원칙 추가</span>
+      <button class="modal-close" onclick="closeModal('modal-principle')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-field"><div class="field-label">원칙</div><input type="text" class="field-input" id="p-text" placeholder="예: 한 종목에 30% 이상 넣지 않는다"></div>
+    <div class="modal-field"><div class="field-label">메모 (선택)</div><textarea class="field-textarea" id="p-memo" placeholder="이 원칙이 생긴 이유나 배경..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="savePrinciple()">저장</button>
+      <button class="btn" onclick="closeModal('modal-principle')">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mistake Add/Edit -->
+<div class="modal-overlay" id="modal-mistake" style="display:none;" onclick="if(event.target===this)closeModal('modal-mistake')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="mistake-modal-title">복기 추가</span>
+      <button class="modal-close" onclick="closeModal('modal-mistake')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-field"><div class="field-label">제목</div><input type="text" class="field-input" id="m-title" placeholder="어떤 판단이었나요?"></div>
+    <div class="modal-field"><div class="field-label">유형</div>
+      <select class="field-input" id="m-tag">
+        <option value="FOMO">FOMO</option>
+        <option value="조급함">조급함</option>
+        <option value="논리부족">논리부족</option>
+        <option value="기타">기타</option>
+      </select>
+    </div>
+    <div class="modal-field"><div class="field-label">내용</div><textarea class="field-textarea" id="m-desc" placeholder="왜 틀렸는지, 감정이 개입됐는지, 다음엔 어떻게 할 건지..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveMistake()">저장</button>
+      <button class="btn" onclick="closeModal('modal-mistake')">취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+function saveApiKey() {
+  const key = document.getElementById("api-key-input").value.trim();
+  if (!key.startsWith("sk-ant-")) {
+    document.getElementById("api-key-status").textContent = "키 형식이 맞지 않아. sk-ant-로 시작해야 해.";
+    document.getElementById("api-key-status").style.color = "var(--red)"; return;
+  }
+  localStorage.setItem("claude-api-key", key);
+  document.getElementById("api-key-status").textContent = "✓ 저장됨";
+  document.getElementById("api-key-status").style.color = "var(--green)";
+  document.getElementById("api-key-input").value = "";
+  document.getElementById("api-key-input").placeholder = "키가 저장되어 있어요";
+}
+function getApiKey() { return localStorage.getItem("claude-api-key") || ""; }
+function loadApiKeyStatus() {
+  if (getApiKey()) {
+    document.getElementById("api-key-status").textContent = "✓ API 키 저장됨";
+    document.getElementById("api-key-status").style.color = "var(--green)";
+    document.getElementById("api-key-input").placeholder = "키가 저장되어 있어요";
+  }
+}
+const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+const CLAUDE_API = "https://api.anthropic.com/v1/messages";
+const TODAY = new Date();
+const TODAY_STR = `${TODAY.getFullYear()}.${String(TODAY.getMonth()+1).padStart(2,'0')}.${String(TODAY.getDate()).padStart(2,'0')}`;
+const EXCHANGE_RATE = 1384;
+
+// ── STATE ──────────────────────────────────────────────────────
+let state = {
+  holdings: [],
+  sells: [],
+  theses: [],
+  industries: [],
+  principles: [],
+  mistakes: [],
+  watchlist: [],
+  seed: 5000000,
+  dailyMemos: {},
+  weeklyReview: "",
+  chats: { daily: [], weekly: [], thesis: [], industry: [] },
+  theme: "light",
+  editIdx: { holding: -1, thesis: -1, industry: -1, principle: -1, mistake: -1 },
+  sellIdx: -1,
+};
+
+function save() { localStorage.setItem("invest-app-v2", JSON.stringify(state)); }
+function load() {
+  const d = localStorage.getItem("invest-app-v2");
+  if (d) { try { state = {...state, ...JSON.parse(d)}; } catch {} }
+}
+
+async function serverSave(key, value) {
+  save(); // also save locally
+  try {
+    await fetch("/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value })
+    });
+  } catch(e) { console.error("서버 저장 실패:", e); }
+}
+
+async function serverLoad() {
+  try {
+    const res = await fetch("/api/load");
+    const data = await res.json();
+    if (data && !data.error) {
+      const keys = ["holdings","sells","theses","industries","principles","mistakes","watchlist","seed","dailyMemos","weeklyReview","chats","theme"];
+      keys.forEach(k => { if (data[k] !== undefined) state[k] = data[k]; });
+      save();
+    }
+  } catch(e) { console.error("서버 로드 실패:", e); }
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+window.onload = function() {
+  load();
+  document.getElementById("today-date").textContent = TODAY_STR;
+  applyTheme();
+  setupNav();
+  renderAll();
+  initChatUIs();
+  loadMemos();
+  loadApiKeyStatus();
+};
+
+function setupNav() {
+  document.querySelectorAll(".nav-item").forEach(el => {
+    el.addEventListener("click", () => {
+      document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+      document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+      el.classList.add("active");
+      const sec = el.dataset.sec;
+      document.getElementById("sec-" + sec).classList.add("active");
+      document.getElementById("page-title").textContent = {
+        daily:"일일 기록", weekly:"주간 정리", portfolio:"포트폴리오",
+        sells:"매도 기록", thesis:"투자 Thesis", industry:"산업 공부",
+        principles:"내 투자 원칙", mistakes:"틀린 판단 복기"
+      }[sec];
+    });
+  });
+}
+
+function renderAll() {
+  renderSidebar();
+  renderPortfolio();
+  renderSells();
+  renderThesis();
+  renderIndustry();
+  renderPrinciples();
+  renderMistakes();
+  renderWeekly();
+}
+
+// ── THEME ──────────────────────────────────────────────────────
+function toggleTheme() {
+  state.theme = state.theme === "light" ? "dark" : "light";
+  applyTheme(); save();
+}
+function applyTheme() {
+  document.body.classList.toggle("dark", state.theme === "dark");
+  const label = document.getElementById("theme-label");
+  const icon = document.querySelector(".theme-btn i");
+  if (state.theme === "dark") { label.textContent = "라이트"; icon.className = "ti ti-sun"; }
+  else { label.textContent = "다크"; icon.className = "ti ti-moon"; }
+}
+
+// ── SIDEBAR / PORTFOLIO METRICS ────────────────────────────────
+function calcPortfolio() {
+  let totalEval = 0;
+  state.holdings.forEach(h => {
+    const rate = h.market === "미국" ? EXCHANGE_RATE : 1;
+    totalEval += h.currPrice * h.qty * rate;
+  });
+  const profit = totalEval - state.seed;
+  const retPct = state.seed > 0 ? (profit / state.seed * 100).toFixed(2) : "0.00";
+  return { totalEval, profit, retPct };
+}
+
+function renderSidebar() {
+  const { totalEval, profit, retPct } = calcPortfolio();
+  document.getElementById("sb-total").textContent = "₩" + Math.round(totalEval).toLocaleString();
+  const sign = profit >= 0 ? "+" : "";
+  document.getElementById("sb-ret").textContent = `${sign}₩${Math.round(Math.abs(profit)).toLocaleString()} (${sign}${retPct}%)`;
+  document.getElementById("sb-ret").style.color = profit >= 0 ? "var(--green)" : "var(--red)";
+  document.getElementById("d-eval").textContent = "₩" + Math.round(totalEval).toLocaleString();
+  document.getElementById("d-ret").textContent = `${sign}${retPct}%`;
+  document.getElementById("d-ret").style.color = profit >= 0 ? "var(--green)" : "var(--red)";
+  document.getElementById("w-ret").textContent = `${sign}${retPct}%`;
+  document.getElementById("w-ret").style.color = profit >= 0 ? "var(--green)" : "var(--red)";
+}
+
+function renderPortfolio() {
+  renderSidebar();
+  const { totalEval, profit, retPct } = calcPortfolio();
+  const sign = profit >= 0 ? "+" : "";
+  const posNeg = profit >= 0 ? "pos" : "neg";
+  document.getElementById("portfolio-metrics").innerHTML = `
+    <div class="metric"><div class="mlabel">시드 머니</div><div class="mnum">₩${state.seed.toLocaleString()}</div></div>
+    <div class="metric"><div class="mlabel">평가금액</div><div class="mnum">₩${Math.round(totalEval).toLocaleString()}</div></div>
+    <div class="metric"><div class="mlabel">총 수익</div><div class="mnum ${posNeg}">${sign}₩${Math.round(Math.abs(profit)).toLocaleString()}</div></div>
+    <div class="metric"><div class="mlabel">총 수익률</div><div class="mnum ${posNeg}">${sign}${retPct}%</div></div>
+  `;
+  const tbody = document.getElementById("holdings-table");
+  if (state.holdings.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px;">보유 종목이 없어요. 종목을 추가해보세요.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.holdings.map((h, i) => {
+    const ret = ((h.currPrice - h.buyPrice) / h.buyPrice * 100).toFixed(1);
+    const pos = parseFloat(ret) >= 0;
+    const sym = h.market === "미국" ? "$" : "₩";
+    const rate = h.market === "미국" ? EXCHANGE_RATE : 1;
+    const eval_ = Math.round(h.currPrice * h.qty * rate).toLocaleString();
+    return `<tr>
+      <td style="font-weight:500;">${h.ticker}</td>
+      <td><span class="badge-${h.market === "미국" ? "us" : "kr"}">${h.market}</span></td>
+      <td class="muted">${sym}${Number(h.buyPrice).toLocaleString()}</td>
+      <td>${sym}${Number(h.currPrice).toLocaleString()}</td>
+      <td>${h.qty}주</td>
+      <td class="${pos ? "pos" : "neg"}" style="font-weight:500;">${pos ? "+" : ""}${ret}%</td>
+      <td><div class="act-row">
+        <button class="btn btn-sm" onclick="openHoldingModal(${i})"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-sm btn-sell" onclick="openSellModal(${i})">매도</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteHolding(${i})"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+
+// ── HOLDING MODAL ──────────────────────────────────────────────
+function openHoldingModal(idx = -1) {
+  state.editIdx.holding = idx;
+  document.getElementById("holding-modal-title").textContent = idx === -1 ? "종목 추가" : "종목 수정";
+  const h = idx === -1 ? {} : state.holdings[idx];
+  document.getElementById("h-ticker").value = h.ticker || "";
+  document.getElementById("h-market").value = h.market || "미국";
+  document.getElementById("h-buy").value = h.buyPrice || "";
+  document.getElementById("h-curr").value = h.currPrice || "";
+  document.getElementById("h-qty").value = h.qty || "";
+  document.getElementById("h-date").value = h.date || TODAY_STR;
+  openModal("modal-holding");
+}
+function saveHolding() {
+  const h = {
+    ticker: document.getElementById("h-ticker").value.trim().toUpperCase(),
+    market: document.getElementById("h-market").value,
+    buyPrice: parseFloat(document.getElementById("h-buy").value) || 0,
+    currPrice: parseFloat(document.getElementById("h-curr").value) || 0,
+    qty: parseInt(document.getElementById("h-qty").value) || 0,
+    date: document.getElementById("h-date").value || TODAY_STR,
+  };
+  if (!h.ticker) return;
+  const idx = state.editIdx.holding;
+  if (idx === -1) state.holdings.push(h);
+  else state.holdings[idx] = h;
+  serverSave("holdings", state.holdings); renderPortfolio(); closeModal("modal-holding");
+}
+function deleteHolding(i) {
+  if (!confirm("삭제할까요?")) return;
+  state.holdings.splice(i, 1);
+  save(); renderPortfolio();
+}
+
+// ── SELL ───────────────────────────────────────────────────────
+function openSellModal(i) {
+  state.sellIdx = i;
+  const h = state.holdings[i];
+  document.getElementById("sell-modal-title").textContent = `매도 처리 — ${h.ticker}`;
+  document.getElementById("sell-price").value = h.currPrice;
+  document.getElementById("sell-date").value = TODAY_STR;
+  document.getElementById("sell-reason").value = "";
+  openModal("modal-sell");
+}
+function confirmSell() {
+  const i = state.sellIdx;
+  const h = state.holdings[i];
+  const sellPrice = parseFloat(document.getElementById("sell-price").value) || h.currPrice;
+  const sellDate = document.getElementById("sell-date").value || TODAY_STR;
+  const reason = document.getElementById("sell-reason").value;
+  const ret = ((sellPrice - h.buyPrice) / h.buyPrice * 100).toFixed(1);
+  state.sells.push({ ...h, sellPrice, sellDate, reason, ret });
+  state.holdings.splice(i, 1);
+  serverSave("holdings", state.holdings); serverSave("sells", state.sells); renderPortfolio(); renderSells(); closeModal("modal-sell");
+}
+function renderSells() {
+  const el = document.getElementById("sells-list");
+  if (state.sells.length === 0) {
+    el.innerHTML = `<div style="text-align:center;color:var(--text3);padding:40px;font-size:13px;">아직 매도 기록이 없어요.</div>`;
+    return;
+  }
+  el.innerHTML = state.sells.map((s, i) => {
+    const pos = parseFloat(s.ret) >= 0;
+    const sym = s.market === "미국" ? "$" : "₩";
+    return `<div class="sell-item">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="sell-ticker">${s.ticker} <span class="badge-${s.market==="미국"?"us":"kr"}" style="font-size:11px;">${s.market}</span></div>
+        <span class="${pos?"pos":"neg"}" style="font-weight:500;font-size:14px;">${pos?"+":""}${s.ret}%</span>
+      </div>
+      <div class="sell-detail">
+        매수가 ${sym}${Number(s.buyPrice).toLocaleString()} → 매도가 ${sym}${Number(s.sellPrice).toLocaleString()} · ${s.qty}주 · ${s.sellDate}
+        ${s.reason ? `<br>이유: ${s.reason}` : ""}
+      </div>
+      <div style="margin-top:8px;text-align:right;">
+        <button class="btn btn-sm btn-danger" onclick="deleteSell(${i})"><i class="ti ti-trash"></i> 삭제</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+function deleteSell(i) {
+  if (!confirm("삭제할까요?")) return;
+  state.sells.splice(i, 1);
+  save(); renderSells();
+}
+
+// ── THESIS ─────────────────────────────────────────────────────
+function openThesisModal(idx = -1) {
+  state.editIdx.thesis = idx;
+  document.getElementById("thesis-modal-title").textContent = idx === -1 ? "Thesis 작성" : "Thesis 수정";
+  const t = idx === -1 ? {} : state.theses[idx];
+  ["ticker","name","industry","period","why","risk","wrong"].forEach(k => {
+    document.getElementById("t-" + (k==="name"?"name":k==="industry"?"industry":k==="period"?"period":k==="why"?"why":k==="risk"?"risk":k==="wrong"?"wrong":k)).value = t[k] || "";
+  });
+  openModal("modal-thesis");
+}
+function saveThesis() {
+  const t = {
+    ticker: document.getElementById("t-ticker").value.trim().toUpperCase(),
+    name: document.getElementById("t-name").value.trim(),
+    industry: document.getElementById("t-industry").value.trim(),
+    period: document.getElementById("t-period").value.trim(),
+    why: document.getElementById("t-why").value.trim(),
+    risk: document.getElementById("t-risk").value.trim(),
+    wrong: document.getElementById("t-wrong").value.trim(),
+    date: TODAY_STR,
+  };
+  if (!t.ticker) return;
+  const idx = state.editIdx.thesis;
+  if (idx === -1) state.theses.push(t);
+  else state.theses[idx] = { ...state.theses[idx], ...t };
+  serverSave("theses", state.theses); renderThesis(); closeModal("modal-thesis");
+}
+function openThesisDetail(i) {
+  const t = state.theses[i];
+  document.getElementById("td-ticker").textContent = `${t.ticker} — ${t.name}`;
+  document.getElementById("td-content").innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      ${[["연결 산업",t.industry],["목표 기간",t.period],["왜 사는가",t.why],["리스크",t.risk],["내가 틀릴 수 있는 이유",t.wrong]].map(([l,v])=>v?`
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">${l}</div><div style="font-size:13px;color:var(--text1);line-height:1.5;">${v}</div></div>
+      `:"").join("")}
+      <div style="display:flex;gap:8px;padding-top:8px;border-top:0.5px solid var(--border);">
+        <button class="btn" onclick="closeModal('modal-thesis-detail');openThesisModal(${i})"><i class="ti ti-edit"></i> 수정</button>
+        <button class="btn btn-danger" onclick="deleteThesis(${i});closeModal('modal-thesis-detail')"><i class="ti ti-trash"></i> 삭제</button>
+      </div>
+    </div>`;
+  openModal("modal-thesis-detail");
+}
+function deleteThesis(i) {
+  if (!confirm("삭제할까요?")) return;
+  state.theses.splice(i, 1);
+  serverSave("theses", state.theses); renderThesis();
+}
+function renderThesis() {
+  const grid = document.getElementById("thesis-grid");
+  const holding = state.holdings.reduce((acc, h) => { acc[h.ticker] = h; return acc; }, {});
+  let html = state.theses.map((t, i) => {
+    const h = holding[t.ticker];
+    let retHtml = "";
+    if (h) {
+      const ret = ((h.currPrice - h.buyPrice) / h.buyPrice * 100).toFixed(1);
+      const pos = parseFloat(ret) >= 0;
+      retHtml = `<div class="tile-ret ${pos?"pos":"neg"}">${pos?"+":""}${ret}% · 목표기간 ${t.period||"—"}</div>`;
+    } else {
+      retHtml = `<div class="tile-ret muted">목표기간 ${t.period||"—"}</div>`;
+    }
+    return `<div class="tile" onclick="openThesisDetail(${i})">
+      <div class="tile-ticker">${t.ticker}</div>
+      <div class="tile-name">${t.name}</div>
+      ${retHtml}
+      <div class="tile-tag">연결 산업: ${t.industry||"—"}</div>
+    </div>`;
+  }).join("");
+  html += `<div class="tile tile-add" onclick="openThesisModal()"><i class="ti ti-plus"></i> 새 Thesis 추가</div>`;
+  grid.innerHTML = html;
+}
+
+// ── INDUSTRY ───────────────────────────────────────────────────
+function openIndustryModal(idx = -1) {
+  state.editIdx.industry = idx;
+  document.getElementById("industry-modal-title").textContent = idx === -1 ? "산업 추가" : "산업 수정";
+  const ind = idx === -1 ? {} : state.industries[idx];
+  document.getElementById("ind-name").value = ind.name || "";
+  document.getElementById("ind-icon").value = ind.icon || "ti-chart-bar";
+  document.getElementById("ind-notes").value = ind.notes || "";
+  openModal("modal-industry");
+}
+function saveIndustry() {
+  const ind = {
+    name: document.getElementById("ind-name").value.trim(),
+    icon: document.getElementById("ind-icon").value.trim() || "ti-chart-bar",
+    notes: document.getElementById("ind-notes").value.trim(),
+    date: TODAY_STR,
+  };
+  if (!ind.name) return;
+  const idx = state.editIdx.industry;
+  if (idx === -1) state.industries.push(ind);
+  else state.industries[idx] = ind;
+  serverSave("industries", state.industries); renderIndustry(); closeModal("modal-industry");
+}
+function openIndustryDetail(i) {
+  const ind = state.industries[i];
+  const linked = state.theses.filter(t => t.industry === ind.name).length;
+  document.getElementById("id-name").textContent = ind.name;
+  document.getElementById("id-content").innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">연결된 Thesis</div><div style="font-size:13px;color:var(--text1);">${linked}개</div></div>
+      ${ind.notes ? `<div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">공부 노트</div><div style="font-size:13px;color:var(--text1);line-height:1.6;white-space:pre-wrap;">${ind.notes}</div></div>` : ""}
+      <div style="display:flex;gap:8px;padding-top:8px;border-top:0.5px solid var(--border);">
+        <button class="btn" onclick="closeModal('modal-industry-detail');openIndustryModal(${i})"><i class="ti ti-edit"></i> 수정</button>
+        <button class="btn btn-danger" onclick="deleteIndustry(${i});closeModal('modal-industry-detail')"><i class="ti ti-trash"></i> 삭제</button>
+      </div>
+    </div>`;
+  openModal("modal-industry-detail");
+}
+function deleteIndustry(i) {
+  if (!confirm("삭제할까요?")) return;
+  state.industries.splice(i, 1);
+  serverSave("industries", state.industries); renderIndustry();
+}
+function renderIndustry() {
+  const grid = document.getElementById("industry-grid");
+  let html = state.industries.map((ind, i) => {
+    const linked = state.theses.filter(t => t.industry === ind.name).length;
+    return `<div class="tile" onclick="openIndustryDetail(${i})">
+      <div class="tile-icon"><i class="ti ${ind.icon}"></i></div>
+      <div class="tile-industry-name">${ind.name}</div>
+      <div class="tile-industry-sub">Thesis ${linked}개 연결</div>
+    </div>`;
+  }).join("");
+  html += `<div class="tile tile-add" onclick="openIndustryModal()"><i class="ti ti-plus"></i> 산업 추가</div>`;
+  grid.innerHTML = html;
+}
+
+// ── PRINCIPLES ─────────────────────────────────────────────────
+function openPrincipleModal(idx = -1) {
+  state.editIdx.principle = idx;
+  document.getElementById("principle-modal-title").textContent = idx === -1 ? "원칙 추가" : "원칙 수정";
+  const p = idx === -1 ? {} : state.principles[idx];
+  document.getElementById("p-text").value = p.text || "";
+  document.getElementById("p-memo").value = p.memo || "";
+  openModal("modal-principle");
+}
+function savePrinciple() {
+  const text = document.getElementById("p-text").value.trim();
+  if (!text) return;
+  const p = { text, memo: document.getElementById("p-memo").value.trim(), date: TODAY_STR, fromMistake: false };
+  const idx = state.editIdx.principle;
+  if (idx === -1) state.principles.push(p);
+  else state.principles[idx] = { ...state.principles[idx], ...p };
+  serverSave("principles", state.principles); renderPrinciples(); closeModal("modal-principle");
+}
+function addPrincipleFromMistake(text) {
+  state.principles.push({ text, memo: "틀린 판단 복기에서 추가됨", date: TODAY_STR, fromMistake: true });
+  serverSave("principles", state.principles); renderPrinciples();
+  alert("원칙이 추가됐어!");
+}
+function deletePrinciple(i) {
+  if (!confirm("삭제할까요?")) return;
+  state.principles.splice(i, 1);
+  save(); renderPrinciples();
+}
+function renderPrinciples() {
+  const el = document.getElementById("principles-list");
+  if (state.principles.length === 0) {
+    el.innerHTML = `<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;">아직 원칙이 없어요. 첫 번째 원칙을 추가해보세요.</div>`;
+    return;
+  }
+  el.innerHTML = state.principles.map((p, i) => `
+    <div class="list-item">
+      <div class="item-row">
+        <div>
+          <div class="item-text">${p.text}</div>
+          <div class="item-sub">${p.fromMistake ? "복기에서 → " : ""}${p.date}${p.memo ? " · " + p.memo : ""}</div>
+        </div>
+        <div class="act-row" style="flex-shrink:0;">
+          <button class="btn btn-sm" onclick="openPrincipleModal(${i})"><i class="ti ti-edit"></i> 수정</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePrinciple(${i})"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    </div>`).join("");
+}
+
+// ── MISTAKES ───────────────────────────────────────────────────
+function openMistakeModal(idx = -1) {
+  state.editIdx.mistake = idx;
+  document.getElementById("mistake-modal-title").textContent = idx === -1 ? "복기 추가" : "복기 수정";
+  const m = idx === -1 ? {} : state.mistakes[idx];
+  document.getElementById("m-title").value = m.title || "";
+  document.getElementById("m-tag").value = m.tag || "FOMO";
+  document.getElementById("m-desc").value = m.desc || "";
+  openModal("modal-mistake");
+}
+function saveMistake() {
+  const title = document.getElementById("m-title").value.trim();
+  if (!title) return;
+  const m = { title, tag: document.getElementById("m-tag").value, desc: document.getElementById("m-desc").value.trim(), date: TODAY_STR };
+  const idx = state.editIdx.mistake;
+  if (idx === -1) state.mistakes.push(m);
+  else state.mistakes[idx] = { ...state.mistakes[idx], ...m };
+  serverSave("mistakes", state.mistakes); renderMistakes(); closeModal("modal-mistake");
+  updatePattern();
+}
+function deleteMistake(i) {
+  if (!confirm("삭제할까요?")) return;
+  state.mistakes.splice(i, 1);
+  serverSave("mistakes", state.mistakes); renderMistakes(); updatePattern();
+}
+const TAG_BADGES = { FOMO: "badge-fomo", "조급함": "badge-rush", "논리부족": "badge-logic", "기타": "" };
+function renderMistakes() {
+  const el = document.getElementById("mistakes-list");
+  if (state.mistakes.length === 0) {
+    el.innerHTML = `<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;">아직 복기가 없어요. 판단을 돌아보고 기록해보세요.</div>`;
+    return;
+  }
+  el.innerHTML = state.mistakes.map((m, i) => `
+    <div class="list-item">
+      <div class="item-row">
+        <span class="item-text" style="font-weight:500;">${m.title}</span>
+        <span class="${TAG_BADGES[m.tag]||''}">${m.tag}</span>
+      </div>
+      <div class="item-desc">${m.desc}</div>
+      <div class="item-footer">
+        <span class="item-sub">${m.date}</span>
+        <div class="act-row">
+          <button class="btn btn-sm" onclick="openMistakeModal(${i})"><i class="ti ti-edit"></i> 수정</button>
+          <button class="btn btn-sm" onclick="addPrincipleFromMistake('${m.title.replace(/'/g,"\\'")}을 반복하지 않는다')"><i class="ti ti-arrow-right"></i> 원칙으로</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteMistake(${i})"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    </div>`).join("");
+}
+function updatePattern() {
+  const el = document.getElementById("pattern-text");
+  if (state.mistakes.length === 0) { el.textContent = "복기가 쌓이면 패턴을 분석해줄게."; return; }
+  const tags = state.mistakes.map(m => m.tag);
+  const counts = {};
+  tags.forEach(t => counts[t] = (counts[t]||0)+1);
+  const top = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  el.textContent = `복기 ${state.mistakes.length}개 분석 — 가장 많은 유형은 "${top[0]}"(${top[1]}회)야. ${top[0]==="FOMO"?"급등장에서 감정적 판단을 조심해.":top[0]==="조급함"?"서두르지 않는 연습이 필요해.":"논리 없는 진입을 줄여봐."} 복기가 더 쌓이면 더 정확해져.`;
+}
+
+// ── MARKET MODAL ───────────────────────────────────────────────
+const MARKET_DATA = {
+  indices: [
+    {n:"S&P 500",sym:"^GSPC",v:"5,842",c:"+0.82%",pos:true},
+    {n:"나스닥",sym:"^IXIC",v:"18,921",c:"+1.14%",pos:true},
+    {n:"다우존스",sym:"^DJI",v:"42,114",c:"+0.31%",pos:true},
+    {n:"코스피",sym:"^KS11",v:"2,631",c:"-0.31%",pos:false},
+    {n:"코스닥",sym:"^KQ11",v:"869",c:"-0.18%",pos:false},
+    {n:"닛케이",sym:"^N225",v:"38,124",c:"+0.55%",pos:true},
+    {n:"항셍",sym:"^HSI",v:"21,980",c:"-0.42%",pos:false},
+    {n:"상하이",sym:"000001.SS",v:"3,321",c:"+0.21%",pos:true},
+    {n:"USD/KRW",sym:"KRW=X",v:"1,384",c:"+0.12%",pos:true},
+    {n:"VIX",sym:"^VIX",v:"18.2",c:"-2.1%",pos:false},
+  ],
+  us: {
+    "기술": [{n:"AAPL",v:"$189.40",c:"+0.34%",pos:true},{n:"MSFT",v:"$428.50",c:"+1.02%",pos:true},{n:"GOOGL",v:"$168.50",c:"+0.61%",pos:true},{n:"META",v:"$512.30",c:"+1.44%",pos:true},{n:"AMZN",v:"$198.20",c:"+0.88%",pos:true},{n:"NFLX",v:"$628.40",c:"+2.11%",pos:true},{n:"ORCL",v:"$142.80",c:"-0.32%",pos:false},{n:"CRM",v:"$298.50",c:"+0.77%",pos:true}],
+    "반도체": [{n:"NVDA",v:"$131.20",c:"+2.14%",pos:true},{n:"AMD",v:"$168.30",c:"+1.88%",pos:true},{n:"INTC",v:"$21.40",c:"-0.93%",pos:false},{n:"QCOM",v:"$158.70",c:"+0.55%",pos:true},{n:"AVGO",v:"$178.90",c:"+1.22%",pos:true},{n:"MU",v:"$98.40",c:"+2.34%",pos:true},{n:"AMAT",v:"$188.60",c:"+1.07%",pos:true},{n:"LRCX",v:"$772.30",c:"+0.88%",pos:true}],
+    "AI": [{n:"NVDA",v:"$131.20",c:"+2.14%",pos:true},{n:"MSFT",v:"$428.50",c:"+1.02%",pos:true},{n:"GOOGL",v:"$168.50",c:"+0.61%",pos:true},{n:"PLTR",v:"$24.80",c:"+3.22%",pos:true},{n:"AI",v:"$28.40",c:"+1.87%",pos:true},{n:"IBM",v:"$168.90",c:"+0.44%",pos:true}],
+    "전기차": [{n:"TSLA",v:"$172.80",c:"-1.44%",pos:false},{n:"RIVN",v:"$12.40",c:"-2.11%",pos:false},{n:"NIO",v:"$4.82",c:"-1.84%",pos:false},{n:"LCID",v:"$2.14",c:"-3.22%",pos:false},{n:"F",v:"$11.20",c:"+0.45%",pos:true},{n:"GM",v:"$44.80",c:"+0.88%",pos:true}],
+    "금융": [{n:"JPM",v:"$198.40",c:"+0.77%",pos:true},{n:"GS",v:"$488.20",c:"+1.11%",pos:true},{n:"BAC",v:"$38.90",c:"+0.55%",pos:true},{n:"MS",v:"$98.40",c:"+0.33%",pos:true},{n:"BRK.B",v:"$412.30",c:"+0.22%",pos:true},{n:"V",v:"$278.50",c:"+0.44%",pos:true}],
+    "바이오": [{n:"JNJ",v:"$158.40",c:"-0.22%",pos:false},{n:"PFE",v:"$28.80",c:"-0.88%",pos:false},{n:"MRNA",v:"$48.20",c:"+1.44%",pos:true},{n:"ABBV",v:"$188.40",c:"+0.33%",pos:true},{n:"LLY",v:"$798.50",c:"+2.11%",pos:true},{n:"AMGN",v:"$312.40",c:"+0.55%",pos:true}],
+    "ETF": [{n:"SPY",v:"$582.40",c:"+0.82%",pos:true},{n:"QQQ",v:"$498.20",c:"+1.14%",pos:true},{n:"SOXX",v:"$198.40",c:"+1.88%",pos:true},{n:"ARKK",v:"$48.20",c:"+2.44%",pos:true},{n:"VTI",v:"$242.80",c:"+0.71%",pos:true},{n:"IWM",v:"$198.40",c:"+0.33%",pos:true}],
+  },
+  kr: {
+    "반도체": [{n:"삼성전자",sym:"005930.KS",v:"₩59,400",c:"-0.83%",pos:false},{n:"SK하이닉스",sym:"000660.KS",v:"₩198,500",c:"+1.23%",pos:true},{n:"한미반도체",sym:"042700.KS",v:"₩88,400",c:"+2.14%",pos:true},{n:"DB하이텍",sym:"000990.KS",v:"₩38,200",c:"-0.52%",pos:false},{n:"리노공업",sym:"058470.KS",v:"₩128,400",c:"+0.78%",pos:true}],
+    "2차전지": [{n:"LG에너지솔루션",sym:"373220.KS",v:"₩348,000",c:"-0.57%",pos:false},{n:"삼성SDI",sym:"006400.KS",v:"₩298,500",c:"-1.17%",pos:false},{n:"에코프로비엠",sym:"247540.KS",v:"₩148,200",c:"+2.33%",pos:true},{n:"포스코퓨처엠",sym:"003670.KS",v:"₩198,400",c:"+1.11%",pos:true},{n:"LG화학",sym:"051910.KS",v:"₩288,000",c:"-0.69%",pos:false}],
+    "바이오": [{n:"삼성바이오로직스",sym:"207940.KS",v:"₩788,000",c:"+1.02%",pos:true},{n:"셀트리온",sym:"068270.KS",v:"₩148,500",c:"+2.14%",pos:true},{n:"한미약품",sym:"128940.KS",v:"₩328,000",c:"+0.61%",pos:true},{n:"유한양행",sym:"000100.KS",v:"₩88,400",c:"-0.45%",pos:false}],
+    "IT/플랫폼": [{n:"네이버",sym:"035420.KS",v:"₩184,000",c:"-0.27%",pos:false},{n:"카카오",sym:"035720.KS",v:"₩42,150",c:"+0.60%",pos:true},{n:"카카오뱅크",sym:"323410.KS",v:"₩24,800",c:"+1.23%",pos:true},{n:"크래프톤",sym:"259960.KS",v:"₩248,000",c:"+0.81%",pos:true}],
+    "대형주": [{n:"현대차",sym:"005380.KS",v:"₩198,000",c:"+0.51%",pos:true},{n:"기아",sym:"000270.KS",v:"₩98,400",c:"+0.82%",pos:true},{n:"POSCO홀딩스",sym:"005490.KS",v:"₩288,000",c:"-0.69%",pos:false},{n:"LG전자",sym:"066570.KS",v:"₩88,400",c:"+0.45%",pos:true},{n:"현대모비스",sym:"012330.KS",v:"₩228,000",c:"+0.22%",pos:true}],
+    "금융": [{n:"KB금융",sym:"105560.KS",v:"₩78,400",c:"+1.02%",pos:true},{n:"신한지주",sym:"055550.KS",v:"₩48,200",c:"+0.83%",pos:true},{n:"하나금융지주",sym:"086790.KS",v:"₩58,800",c:"+0.68%",pos:true},{n:"삼성생명",sym:"032830.KS",v:"₩88,000",c:"+0.23%",pos:true}],
+  }
+};
+
+let currentMarketTab = "indices";
+let currentSubTab = "";
+
+function openMarketModal() {
+  renderMarketModal();
+  openModal("modal-market");
+}
+
+function renderMarketModal() {
+  const tabs = [
+    {id:"indices",label:"지수"},
+    {id:"us",label:"미국"},
+    {id:"kr",label:"한국"},
+    {id:"watch",label:"관심종목"},
+  ];
+  let html = `<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+    ${tabs.map(t => `<button onclick="switchMarketTab('${t.id}')" style="padding:6px 14px;border-radius:var(--sm-radius);border:0.5px solid var(--border);background:${currentMarketTab===t.id?"var(--text1)":"var(--bg1)"};color:${currentMarketTab===t.id?"var(--bg0)":"var(--text2)"};font-size:12px;cursor:pointer;">${t.label}</button>`).join("")}
+  </div>`;
+
+  if (currentMarketTab === "indices") {
+    html += MARKET_DATA.indices.map(item => `
+      <div class="mfull-row" style="cursor:pointer;" onclick="openChartModal('${item.sym}','${item.n}')">
+        <span style="font-weight:500;">${item.n}</span>
+        <span><span class="muted" style="margin-right:10px;font-size:12px;">${item.v}</span><span class="${item.pos?"pos":"neg"}">${item.c}</span></span>
+      </div>`).join("");
+  } else if (currentMarketTab === "us" || currentMarketTab === "kr") {
+    const data = MARKET_DATA[currentMarketTab];
+    const sectors = Object.keys(data);
+    if (!currentSubTab || !data[currentSubTab]) currentSubTab = sectors[0];
+    html += `<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+      ${sectors.map(s => `<button onclick="switchSubTab('${s}')" style="padding:4px 10px;border-radius:var(--sm-radius);border:0.5px solid var(--border);background:${currentSubTab===s?"var(--text2)":"var(--bg2)"};color:${currentSubTab===s?"var(--bg0)":"var(--text2)"};font-size:11px;cursor:pointer;">${s}</button>`).join("")}
+    </div>`;
+    html += data[currentSubTab].map(item => `
+      <div class="mfull-row" style="cursor:pointer;" onclick="openChartModal('${item.sym||item.n}','${item.n}')">
+        <span style="font-weight:500;">${item.n}</span>
+        <span><span class="muted" style="margin-right:10px;font-size:12px;">${item.v}</span><span class="${item.pos?"pos":"neg"}">${item.c}</span></span>
+      </div>`).join("");
+  } else if (currentMarketTab === "watch") {
+    if (state.watchlist.length === 0) {
+      html += `<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">관심 종목이 없어요.</div>`;
+    } else {
+      html += state.watchlist.map((t,i) => `
+        <div class="mfull-row">
+          <span style="font-weight:500;cursor:pointer;" onclick="openChartModal('${t}','${t}')">${t}</span>
+          <button class="btn btn-sm btn-danger" onclick="removeWatch(${i})"><i class="ti ti-trash"></i></button>
+        </div>`).join("");
+    }
+    html += `<div style="display:flex;gap:8px;margin-top:12px;">
+      <input type="text" class="field-input" id="watch-input" placeholder="예: TSLA, 035420" style="flex:1;">
+      <button class="btn-primary" onclick="addWatchlist()">추가</button>
+    </div>`;
+  }
+
+  document.getElementById("market-full-content").innerHTML = html;
+}
+
+function switchMarketTab(tab) {
+  currentMarketTab = tab;
+  currentSubTab = "";
+  renderMarketModal();
+}
+
+function switchSubTab(sub) {
+  currentSubTab = sub;
+  renderMarketModal();
+}
+
+function addWatchlist() {
+  const val = document.getElementById("watch-input").value.trim().toUpperCase();
+  if (!val || state.watchlist.includes(val)) return;
+  state.watchlist.push(val);
+  document.getElementById("watch-input").value = "";
+  serverSave("watchlist", state.watchlist); renderMarketModal();
+}
+
+function removeWatch(i) {
+  state.watchlist.splice(i, 1);
+  serverSave("watchlist", state.watchlist); renderMarketModal();
+}
+
+function renderWatchlist() {}
+
+// Chart modal
+let chartPeriod = "1mo";
+function openChartModal(sym, name) {
+  document.getElementById("chart-modal-title").textContent = name;
+  document.getElementById("chart-sym").textContent = sym;
+  chartPeriod = "1mo";
+  loadChart(sym);
+  openModal("modal-chart");
+}
+
+function loadChart(sym) {
+  const el = document.getElementById("chart-container");
+  el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px;">차트 불러오는 중...</div>`;
+  // Use server-side proxy
+  fetch(`/api/chart?sym=${encodeURIComponent(sym)}&period=${chartPeriod}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error || !data.prices || data.prices.length === 0) {
+        el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px;">차트 데이터를 불러올 수 없어요.</div>`;
+        return;
+      }
+      renderChart(data.prices, data.dates, el);
+      if (data.info) {
+        document.getElementById("chart-info").innerHTML = `
+          <span style="font-size:18px;font-weight:600;color:var(--text1);">${data.info.price}</span>
+          <span style="font-size:14px;margin-left:10px;" class="${parseFloat(data.info.change)>=0?"pos":"neg"}">${data.info.change} (${data.info.changePct})</span>
+          ${data.info.volume ? `<span style="font-size:12px;color:var(--text3);margin-left:12px;">거래량 ${data.info.volume}</span>` : ""}
+        `;
+      }
+    })
+    .catch(() => {
+      el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px;">차트 데이터를 불러올 수 없어요.</div>`;
+    });
+}
+
+function renderChart(prices, dates, container) {
+  const w = container.offsetWidth || 500;
+  const h = 200;
+  const pad = { top: 10, right: 20, bottom: 30, left: 50 };
+  const minP = Math.min(...prices);
+  const maxP = Math.max(...prices);
+  const range = maxP - minP || 1;
+  const isPos = prices[prices.length-1] >= prices[0];
+  const color = isPos ? "#16a34a" : "#dc2626";
+
+  const xScale = i => pad.left + (i / (prices.length - 1)) * (w - pad.left - pad.right);
+  const yScale = p => pad.top + (1 - (p - minP) / range) * (h - pad.top - pad.bottom);
+
+  const points = prices.map((p, i) => `${xScale(i)},${yScale(p)}`).join(" ");
+  const areaPoints = `${xScale(0)},${h - pad.bottom} ${points} ${xScale(prices.length-1)},${h - pad.bottom}`;
+
+  // Y axis labels
+  const yLabels = [minP, (minP+maxP)/2, maxP].map(v => {
+    const y = yScale(v);
+    const label = v >= 1000 ? v.toLocaleString(undefined,{maximumFractionDigits:0}) : v.toFixed(2);
+    return `<text x="${pad.left - 4}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--text3)">${label}</text>`;
+  }).join("");
+
+  // X axis labels (show ~5)
+  const step = Math.floor(dates.length / 4);
+  const xLabels = dates.filter((_,i) => i % step === 0 || i === dates.length-1).map((d, idx) => {
+    const origIdx = idx * step >= dates.length ? dates.length-1 : idx * step;
+    return `<text x="${xScale(origIdx)}" y="${h - 5}" text-anchor="middle" font-size="10" fill="var(--text3)">${d}</text>`;
+  }).join("");
+
+  container.innerHTML = `
+    <svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.2"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <polygon points="${areaPoints}" fill="url(#chartGrad)"/>
+      <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5"/>
+      ${yLabels}${xLabels}
+    </svg>`;
+}
+
+// ── MEMOS ──────────────────────────────────────────────────────
+function getWeekRange() {
+  const d = new Date();
+  const day = d.getDay();
+  const mon = new Date(d);
+  mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  const fmt = (dt) => `${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`;
+  return { start: fmt(mon), end: fmt(sun) };
+}
+
+function loadMemos() {
+  const memo = document.getElementById("daily-memo");
+  memo.value = state.dailyMemos[TODAY_STR]?.text || "";
+  const wr = document.getElementById("weekly-review");
+  wr.value = state.weeklyReview || "";
+  wr.addEventListener("input", () => { state.weeklyReview = wr.value; serverSave("weeklyReview", state.weeklyReview); });
+  renderMemoHistory();
+  renderWeekly();
+}
+
+function saveDailyMemo() {
+  const memo = document.getElementById("daily-memo");
+  const text = memo.value.trim();
+  if (!text) return;
+  if (!state.dailyMemos[TODAY_STR]) state.dailyMemos[TODAY_STR] = { text, date: TODAY_STR };
+  else state.dailyMemos[TODAY_STR].text = text;
+  serverSave("dailyMemos", state.dailyMemos);
+  renderMemoHistory();
+  renderWeekly();
+  alert("저장됐어!");
+}
+
+function renderMemoHistory() {
+  const el = document.getElementById("memo-history-list");
+  const entries = Object.entries(state.dailyMemos).sort((a,b) => b[0].localeCompare(a[0]));
+  if (entries.length === 0) {
+    el.innerHTML = `<div style="color:var(--text3);font-size:13px;">저장된 메모가 없어요.</div>`;
+    document.getElementById("memo-history-card").style.display = "none";
+    return;
+  }
+  document.getElementById("memo-history-card").style.display = "block";
+  el.innerHTML = entries.map(([date, memo]) => {
+    const text = typeof memo === "string" ? memo : memo.text;
+    return `<div class="list-item" style="padding:10px 14px;">
+      <div class="item-row">
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--text1);">${date}</div>
+          <div id="memo-text-${date}" style="font-size:13px;color:var(--text2);margin-top:4px;line-height:1.5;">${text}</div>
+          <textarea id="memo-edit-${date}" class="field-textarea" style="display:none;margin-top:6px;">${text}</textarea>
+        </div>
+        <div class="act-row" style="flex-shrink:0;">
+          <button class="btn btn-sm" id="memo-edit-btn-${date}" onclick="toggleMemoEdit('${date}')"><i class="ti ti-edit"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="deleteMemo('${date}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function toggleMemoEdit(date) {
+  const textEl = document.getElementById("memo-text-" + date);
+  const editEl = document.getElementById("memo-edit-" + date);
+  const btnEl = document.getElementById("memo-edit-btn-" + date);
+  if (editEl.style.display === "none") {
+    textEl.style.display = "none";
+    editEl.style.display = "block";
+    btnEl.innerHTML = '<i class="ti ti-check"></i>';
+    btnEl.onclick = () => saveMemoEdit(date);
+  } else {
+    saveMemoEdit(date);
+  }
+}
+
+function saveMemoEdit(date) {
+  const editEl = document.getElementById("memo-edit-" + date);
+  const textEl = document.getElementById("memo-text-" + date);
+  const newText = editEl.value.trim();
+  if (!newText) return;
+  state.dailyMemos[date] = { text: newText, date };
+  textEl.textContent = newText;
+  textEl.style.display = "block";
+  editEl.style.display = "none";
+  document.getElementById("memo-edit-btn-" + date).innerHTML = '<i class="ti ti-edit"></i>';
+  document.getElementById("memo-edit-btn-" + date).onclick = () => toggleMemoEdit(date);
+  serverSave("dailyMemos", state.dailyMemos);
+  renderWeekly();
+}
+
+function deleteMemo(date) {
+  if (!confirm("이 메모를 삭제할까요?")) return;
+  delete state.dailyMemos[date];
+  serverSave("dailyMemos", state.dailyMemos);
+  renderMemoHistory();
+  renderWeekly();
+}
+
+function renderWeekly() {
+  const el = document.getElementById("weekly-daily-summary");
+  const { start, end } = getWeekRange();
+  const entries = Object.entries(state.dailyMemos)
+    .filter(([date]) => date >= start && date <= end)
+    .sort((a,b) => a[0].localeCompare(b[0]));
+  if (entries.length === 0) {
+    el.innerHTML = `<div style="color:var(--text3);font-size:13px;">이번 주 (${start} ~ ${end}) 작성된 일일 기록이 없어요.</div>`;
+    return;
+  }
+  el.innerHTML = entries.map(([date, memo]) => {
+    const text = typeof memo === "string" ? memo : memo.text;
+    return `<div class="list-item" style="padding:10px 14px;">
+      <div style="font-size:12px;font-weight:500;color:var(--text1);margin-bottom:4px;">${date}</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.5;">${text}</div>
+    </div>`;
+  }).join("");
+}
+
+// ── CHAT ───────────────────────────────────────────────────────
+const CHAT_SYSTEMS = {
+  daily: "너는 리오의 투자 학습 파트너야. 리오는 투자 공부 단계이고 막 투자를 시작하려 해. 일일 기록 섹션에서 오늘의 시장과 느낀 점에 대해 대화하고 있어. 간결하고 핵심적으로 답해줘. 한국어로 답해.",
+  weekly: "너는 리오의 투자 학습 파트너야. 주간 정리 섹션에서 이번 주 시장과 투자 판단을 돌아보고 있어. 깊게 생각할 수 있도록 도와줘. 한국어로 답해.",
+  thesis: "너는 리오의 투자 학습 파트너야. 투자 Thesis 섹션에서 특정 종목에 투자하는 논리를 같이 만들고 있어. 왜 사는지, 리스크가 뭔지, 언제 팔지, 내가 틀릴 수 있는 이유가 뭔지를 체계적으로 생각할 수 있게 도와줘. 한국어로 답해.",
+  industry: "너는 리오의 투자 학습 파트너야. 산업 공부 섹션에서 특정 산업이 왜 돈이 되는지, 구조가 어떻게 되는지, 핵심 플레이어가 누구인지를 가르쳐줘. 이해하기 쉽게 설명해줘. 한국어로 답해.",
+};
+const INITIAL_MSGS = {
+  daily: "오늘 시장 어땠어? 특별히 눈에 띈 것 있으면 같이 분석해보자.",
+  weekly: "이번 주 시장 어떻게 봤어? 내가 한 판단 중에 돌아보고 싶은 게 있어?",
+  thesis: "어떤 종목 Thesis 같이 작성해볼까? 종목명 알려줘.",
+  industry: "어떤 산업 공부할까? 반도체, AI 인프라, 클라우드 중에 시작하고 싶은 거 있어?",
+};
+function initChatUIs() {
+  ["daily","weekly","thesis","industry"].forEach(key => {
+    const msgsEl = document.getElementById(key + "-chat-msgs");
+    const saved = state.chats[key] || [];
+    if (saved.length === 0) {
+      addChatBubble(msgsEl, "ai", INITIAL_MSGS[key]);
+    } else {
+      saved.forEach(m => addChatBubble(msgsEl, m.role, m.text));
+    }
+    document.getElementById(key + "-chat-input").addEventListener("keydown", e => {
+      if (e.key === "Enter") sendChat(key);
+    });
+  });
+}
+function addChatBubble(container, role, text) {
+  const div = document.createElement("div");
+  div.className = role === "ai" ? "msg-ai" : "msg-user";
+  if (role === "ai") {
+    div.innerHTML = `<div class="ai-label">Claude</div><div class="ai-text">${text}</div>`;
+  } else {
+    div.textContent = text;
+  }
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+function clearChat(key) {
+  if (!confirm("대화를 초기화할까요?")) return;
+  state.chats[key] = [];
+  save();
+  const msgsEl = document.getElementById(key + "-chat-msgs");
+  msgsEl.innerHTML = "";
+  addChatBubble(msgsEl, "ai", INITIAL_MSGS[key]);
+}
+
+async function sendChat(key) {
+  const input = document.getElementById(key + "-chat-input");
+  const msgsEl = document.getElementById(key + "-chat-msgs");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  addChatBubble(msgsEl, "user", text);
+  if (!state.chats[key]) state.chats[key] = [];
+  state.chats[key].push({ role: "user", text });
+  const loading = document.createElement("div");
+  loading.className = "msg-loading";
+  loading.textContent = "Claude가 생각 중...";
+  msgsEl.appendChild(loading);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+  try {
+    const messages = state.chats[key].map(m => ({ role: m.role === "ai" ? "assistant" : "user", content: m.text }));
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ system: CHAT_SYSTEMS[key], messages })
+    });
+    const data = await res.json();
+    const reply = data.text || data.error || "응답을 받지 못했어.";
+    loading.remove();
+    addChatBubble(msgsEl, "ai", reply);
+    state.chats[key].push({ role: "ai", text: reply });
+    serverSave("chats", state.chats);
+  } catch (e) {
+    loading.textContent = "오류가 발생했어. 다시 시도해봐.";
+  }
+}
+
+
+async function autoUpdatePrices() {
+  if (state.holdings.length === 0) return;
+  for (let i = 0; i < state.holdings.length; i++) {
+    const h = state.holdings[i];
+    try {
+      // Map KR stocks
+      let sym = h.ticker;
+      if (h.market === "한국" && !sym.includes(".")) sym = sym + ".KS";
+      const res = await fetch(`/api/price?sym=${encodeURIComponent(sym)}`);
+      const data = await res.json();
+      if (data.price && !data.error) {
+        state.holdings[i].currPrice = data.price;
+      }
+    } catch(e) {}
+  }
+  serverSave("holdings", state.holdings);
+  renderPortfolio();
+  renderSidebar();
+}
+
+// ── MODALS ─────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).style.display = "flex"; }
+function closeModal(id) { document.getElementById(id).style.display = "none"; }
+</script>
+
+<!-- Chart Modal -->
+<div class="modal-overlay" id="modal-chart" style="display:none;" onclick="if(event.target===this)closeModal('modal-chart')">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <span class="modal-title" id="chart-modal-title"></span>
+      <button class="modal-close" onclick="closeModal('modal-chart')"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;" id="chart-sym"></div>
+    <div id="chart-info" style="margin-bottom:14px;display:flex;align-items:baseline;gap:6px;"></div>
+    <div style="display:flex;gap:6px;margin-bottom:14px;">
+      <button onclick="chartPeriod='1d';loadChart(document.getElementById('chart-sym').textContent)" style="padding:4px 10px;border-radius:var(--sm-radius);border:0.5px solid var(--border);background:var(--bg1);color:var(--text2);font-size:11px;cursor:pointer;">1일</button>
+      <button onclick="chartPeriod='5d';loadChart(document.getElementById('chart-sym').textContent)" style="padding:4px 10px;border-radius:var(--sm-radius);border:0.5px solid var(--border);background:var(--bg1);color:var(--text2);font-size:11px;cursor:pointer;">1주</button>
+      <button onclick="chartPeriod='1mo';loadChart(document.getElementById('chart-sym').textContent)" style="padding:4px 10px;border-radius:var(--sm-radius);border:0.5px solid var(--border);background:var(--text1);color:var(--bg0);font-size:11px;cursor:pointer;">1개월</button>
+      <button onclick="chartPeriod='6mo';loadChart(document.getElementById('chart-sym').textContent)" style="padding:4px 10px;border-radius:var(--sm-radius);border:0.5px solid var(--border);background:var(--bg1);color:var(--text2);font-size:11px;cursor:pointer;">6개월</button>
+      <button onclick="chartPeriod='1y';loadChart(document.getElementById('chart-sym').textContent)" style="padding:4px 10px;border-radius:var(--sm-radius);border:0.5px solid var(--border);background:var(--bg1);color:var(--text2);font-size:11px;cursor:pointer;">1년</button>
+    </div>
+    <div id="chart-container" style="width:100%;min-height:200px;"></div>
+  </div>
+</div>
+</body>
+</html>
