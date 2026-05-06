@@ -14,6 +14,7 @@ app.use(express.static(path.join(__dirname, "public")));
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY);
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
+const GNEWS_API_KEY = process.env.GNEWS_API_KEY;
 
 const SYSTEMS = {
   daily: `당신은 리오의 전문 투자 분석 파트너입니다. 리오는 투자를 막 시작하는 학습자입니다.
@@ -50,35 +51,42 @@ const SYSTEMS = {
 - 한국어로 답변`,
 };
 
-// News fetcher
+// News fetcher using GNews API
 function fetchNews(query, pageSize = 5) {
   return new Promise((resolve) => {
     const encoded = encodeURIComponent(query);
-    const options = {
-      hostname: "newsapi.org",
-      path: `/v2/everything?q=${encoded}&pageSize=${pageSize}&sortBy=publishedAt&language=en&apiKey=${NEWS_API_KEY}`,
-      method: "GET",
-      headers: { "User-Agent": "invest-app/1.0" }
-    };
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", chunk => data += chunk);
-      res.on("end", () => {
-        try {
-          const json = JSON.parse(data);
-          const articles = (json.articles || []).slice(0, pageSize).map(a => ({
-            title: a.title,
-            source: a.source?.name,
-            publishedAt: a.publishedAt?.slice(0, 10),
-            description: a.description,
-            url: a.url,
-          }));
-          resolve(articles);
-        } catch { resolve([]); }
+    const apiKey = GNEWS_API_KEY || NEWS_API_KEY;
+    
+    // Try GNews first
+    if (GNEWS_API_KEY) {
+      const options = {
+        hostname: "gnews.io",
+        path: `/api/v4/search?q=${encoded}&max=${pageSize}&lang=en&sortby=publishedAt&apikey=${GNEWS_API_KEY}`,
+        method: "GET",
+        headers: { "User-Agent": "invest-app/1.0" }
+      };
+      const req = https.request(options, (res) => {
+        let data = "";
+        res.on("data", chunk => data += chunk);
+        res.on("end", () => {
+          try {
+            const json = JSON.parse(data);
+            const articles = (json.articles || []).slice(0, pageSize).map(a => ({
+              title: a.title,
+              source: a.source?.name,
+              publishedAt: a.publishedAt?.slice(0, 10),
+              description: a.description,
+              url: a.url,
+            }));
+            resolve(articles);
+          } catch { resolve([]); }
+        });
       });
-    });
-    req.on("error", () => resolve([]));
-    req.end();
+      req.on("error", () => resolve([]));
+      req.end();
+    } else {
+      resolve([]);
+    }
   });
 }
 
