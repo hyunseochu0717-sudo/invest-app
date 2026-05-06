@@ -813,12 +813,20 @@ function renderPortfolio() {
   const ret = SEED() > 0 ? (profit/SEED()*100).toFixed(2) : "0.00";
   const pos = parseFloat(ret) >= 0;
   const sign = pos ? "+" : "";
+  // Realized profit from sells
+  let realizedProfit = 0;
+  SS().forEach(s => {
+    const rate = s.market==="미국" ? XR : 1;
+    realizedProfit += (s.sellPrice - s.buyPrice) * s.qty * rate;
+  });
+  const realizedPos = realizedProfit >= 0;
+
   const pm = document.getElementById("port-metrics");
   if (pm) pm.innerHTML = `
     <div class="metric"><div class="ml">시드 머니</div><div class="mv">₩${SEED().toLocaleString()}</div></div>
-    <div class="metric"><div class="ml">평가금액</div><div class="mv">₩${Math.round(eval_).toLocaleString()}</div></div>
-    <div class="metric"><div class="ml">총 수익</div><div class="mv ${pos?"pos":"neg"}">${sign}₩${Math.round(Math.abs(profit)).toLocaleString()}</div></div>
-    <div class="metric"><div class="ml">총 수익률</div><div class="mv ${pos?"pos":"neg"}">${sign}${ret}%</div></div>`;
+    <div class="metric"><div class="ml">평가금액 (보유중)</div><div class="mv">₩${Math.round(eval_).toLocaleString()}</div></div>
+    <div class="metric"><div class="ml">미실현 수익</div><div class="mv ${pos?"pos":"neg"}">${sign}₩${Math.round(Math.abs(profit)).toLocaleString()} <span style="font-size:13px;">(${sign}${ret}%)</span></div></div>
+    <div class="metric"><div class="ml">실현 수익 (매도)</div><div class="mv ${realizedPos?"pos":"neg"}">${realizedPos?"+":""}₩${Math.round(Math.abs(realizedProfit)).toLocaleString()}</div></div>`;
 
   // Sector chart
   const scEl = document.getElementById("sector-chart");
