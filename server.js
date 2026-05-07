@@ -113,11 +113,13 @@ function translateQuery(q) {
 // Extract search query from messages
 function extractQuery(messages, section) {
   const lastMsg = messages[messages.length - 1]?.content || "";
-  const keywords = translateQuery(lastMsg.replace(/[^\w\s가-힣]/g, " ").trim().slice(0, 80));
-  if (section === "daily") return `${keywords} stock market today`;
-  if (section === "weekly") return `${keywords} stock market this week`;
-  if (section === "industry") return `${keywords} industry stocks 2025`;
-  return `${keywords} stock investing`;
+  // Extract key terms - remove news context we added
+  const cleanMsg = lastMsg.split("[최신 뉴스]")[0];
+  const keywords = translateQuery(cleanMsg.replace(/[^\w\s가-힣]/g, " ").trim().slice(0, 80));
+  if (section === "daily") return `${keywords} stocks`;
+  if (section === "weekly") return `${keywords} market`;
+  if (section === "industry") return `${keywords} industry`;
+  return `${keywords} stocks`;
 }
 
 // Claude 대화 with news context + streaming
@@ -184,10 +186,14 @@ app.get("/api/news", async (req, res) => {
   try {
     const { q, size } = req.query;
     if (!q) return res.status(400).json({ error: "q required" });
-    const translatedQ = translateQuery(q) + " stock investing 2025";
+    // Translate Korean industry names to English for better results
+    const translatedQ = translateQuery(q);
+    console.log("News query:", q, "->", translatedQ);
     const articles = await fetchNews(translatedQ, parseInt(size) || 5);
+    console.log("Articles found:", articles.length);
     res.json({ articles });
   } catch (e) {
+    console.error("News error:", e);
     res.status(500).json({ error: e.message });
   }
 });
