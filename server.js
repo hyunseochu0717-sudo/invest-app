@@ -59,7 +59,7 @@ function fetchNews(query, pageSize = 5) {
     const encoded = encodeURIComponent(query);
     const options = {
       hostname: "content.guardianapis.com",
-      path: `/search?q=${encoded}&page-size=${pageSize}&order-by=newest&show-fields=trailText&api-key=${GUARDIAN_API_KEY}`,
+      path: `/search?q=${encoded}&page-size=${pageSize}&order-by=newest&show-fields=trailText,headline&use-date=published&api-key=${GUARDIAN_API_KEY}`,
       method: "GET",
       headers: { "User-Agent": "invest-app/1.0" }
     };
@@ -88,19 +88,19 @@ function fetchNews(query, pageSize = 5) {
 
 // Korean industry name to English
 const KR_TO_EN = {
-  "반도체": "semiconductor chip",
-  "AI": "artificial intelligence AI",
-  "인공지능": "artificial intelligence AI",
-  "2차전지": "battery EV lithium",
-  "전기차": "electric vehicle EV",
-  "바이오": "biotech pharmaceutical",
-  "클라우드": "cloud computing",
-  "플랫폼": "tech platform",
-  "금융": "finance banking",
-  "대형주": "large cap Korea stock",
-  "IT": "technology software",
-  "에너지": "energy renewable",
-  "게임": "gaming esports",
+  "반도체": "semiconductor chips technology",
+  "AI": "artificial intelligence technology",
+  "인공지능": "artificial intelligence technology",
+  "2차전지": "battery electric vehicle technology",
+  "전기차": "electric vehicle EV market",
+  "바이오": "biotech pharmaceutical stocks",
+  "클라우드": "cloud computing technology",
+  "플랫폼": "tech platform digital",
+  "금융": "finance banking economy",
+  "대형주": "stock market economy",
+  "IT": "technology software market",
+  "에너지": "energy market stocks",
+  "게임": "gaming technology market",
 };
 
 function translateQuery(q) {
